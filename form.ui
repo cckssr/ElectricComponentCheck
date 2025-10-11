@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1140</width>
+    <height>873</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
+    <item row="2" column="1">
+     <widget class="QToolBox" name="toolBox">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="resistor">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>1116</width>
+         <height>459</height>
+        </rect>
+       </property>
+       <attribute name="label">
+        <string>Widerstand</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="capacitor">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>1116</width>
+         <height>459</height>
+        </rect>
+       </property>
+       <attribute name="label">
+        <string>Kondensator</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="inductor">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>1116</width>
+         <height>459</height>
+        </rect>
+       </property>
+       <attribute name="label">
+        <string>Induktivität</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="transistor">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>1116</width>
+         <height>459</height>
+        </rect>
+       </property>
+       <attribute name="label">
+        <string>Transistor</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="switch_2">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>1116</width>
+         <height>459</height>
+        </rect>
+       </property>
+       <attribute name="label">
+        <string>Schalter</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="fuse">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>1116</width>
+         <height>459</height>
+        </rect>
+       </property>
+       <attribute name="label">
+        <string>Sicherung</string>
+       </attribute>
+      </widget>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <layout class="QGridLayout" name="gridLayout_2">
+      <property name="bottomMargin">
+       <number>10</number>
+      </property>
+      <item row="0" column="0">
+       <layout class="QFormLayout" name="formLayout_2">
+        <property name="fieldGrowthPolicy">
+         <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Barcode</string>
+          </property>
+          <property name="buddy">
+           <cstring>label</cstring>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="barcode">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="1">
+       <layout class="QFormLayout" name="formLayout_6">
+        <property name="fieldGrowthPolicy">
+         <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="status">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <item>
+           <property name="text">
+            <string comment="FUNC">Funktioniert</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="NOCALB">Unkalibriert</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="OK">Kalibriert</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="UNKWN">Unbekannt</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="DEF">Defekt</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="ARCHIVE">Archiviert</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_5">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Funktionsstatus</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="0">
+       <layout class="QFormLayout" name="formLayout_5">
+        <property name="fieldGrowthPolicy">
+         <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_4">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Herstellerbezeichnung&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="orig_name">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <layout class="QFormLayout" name="formLayout_3">
+        <property name="fieldGrowthPolicy">
+         <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Kategorie</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="type">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <item>
+           <property name="text">
+            <string>Widerstand</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Kondensator</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Induktivität</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Transistor</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Schalter</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Sicherung</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="1">
+       <layout class="QFormLayout" name="formLayout_4">
+        <property name="fieldGrowthPolicy">
+         <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_3">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Hersteller</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="manufacturer">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item row="1" column="1">
+     <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1140</width>
+     <height>24</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <tabstops>
+  <tabstop>barcode</tabstop>
+  <tabstop>type</tabstop>
+  <tabstop>manufacturer</tabstop>
+  <tabstop>orig_name</tabstop>
+  <tabstop>status</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

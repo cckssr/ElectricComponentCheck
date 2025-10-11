@@ -1,0 +1,1162 @@
+{
+  "capacitance": {
+    "100_120_400": {
+      "freqs_Hz": [100, 120, 400],
+      "ranges": [
+        {
+          "name": "20 mF",
+          "min": 4.0,
+          "max": 20.0,
+          "unit": "mF",
+          "resolution": 0.001,
+          "Ce_pct": 8.0,
+          "Ce_digits": 5,
+          "De_abs": 0.08,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 mF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "mF",
+          "resolution": 0.0001,
+          "Ce_pct": 2.0,
+          "Ce_digits": 3,
+          "De_abs": 0.02,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 µF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "µF",
+          "resolution": 0.01,
+          "Ce_pct": 0.6,
+          "Ce_digits": 2,
+          "De_abs": 0.006,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 µF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "µF",
+          "resolution": 0.001,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 µF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "µF",
+          "resolution": 0.0001,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 nF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "nF",
+          "resolution": 0.01,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 nF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "nF",
+          "resolution": 0.001,
+          "Ce_pct": 0.5,
+          "Ce_digits": 3,
+          "De_abs": 0.005,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 nF",
+          "min": 0.0,
+          "max": 3.999,
+          "unit": "nF",
+          "resolution": 0.001,
+          "Ce_pct": 1.5,
+          "Ce_digits": 5,
+          "De_abs": null,
+          "equiv": "PAR"
+        }
+      ]
+    },
+    "1k_4k": {
+      "freqs_Hz": [1000, 4000],
+      "ranges": [
+        {
+          "name": "1000 uF",
+          "min": 400.0,
+          "max": 999.99,
+          "unit": "uF",
+          "resolution": 0.1,
+          "Ce_pct": 3.0,
+          "Ce_digits": 5,
+          "De_abs": 0.03,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 µF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "µF",
+          "resolution": 0.01,
+          "Ce_pct": 1.5,
+          "Ce_digits": 3,
+          "De_abs": 0.015,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 µF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "µF",
+          "resolution": 0.001,
+          "Ce_pct": 0.6,
+          "Ce_digits": 2,
+          "De_abs": 0.006,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 µF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "µF",
+          "resolution": 0.0001,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": null
+        },
+        {
+          "name": "400 nF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "nF",
+          "resolution": 0.01,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 nF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "nF",
+          "resolution": 0.001,
+          "Ce_pct": 0.6,
+          "Ce_digits": 3,
+          "De_abs": 0.006,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 nF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "nF",
+          "resolution": 0.0001,
+          "Ce_pct": 0.6,
+          "Ce_digits": 3,
+          "De_abs": 0.006,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 pF",
+          "min": 0.0,
+          "max": 399.9,
+          "unit": "pF",
+          "resolution": 0.1,
+          "Ce_pct": 3.0,
+          "Ce_digits": 5,
+          "De_abs": null,
+          "equiv": "PAR"
+        }
+      ]
+    },
+    "10k": {
+      "freqs_Hz": [10000],
+      "ranges": [
+        {
+          "name": "100 µF",
+          "min": 40.0,
+          "max": 100.0,
+          "unit": "µF",
+          "resolution": 0.01,
+          "Ce_pct": 4.0,
+          "Ce_digits": 5,
+          "De_abs": 0.04,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 µF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "µF",
+          "resolution": 0.001,
+          "Ce_pct": 2.0,
+          "Ce_digits": 3,
+          "De_abs": 0.02,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 µF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "µF",
+          "resolution": 0.0001,
+          "Ce_pct": 0.6,
+          "Ce_digits": 2,
+          "De_abs": 0.006,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 nF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "nF",
+          "resolution": 0.01,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 nF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "nF",
+          "resolution": 0.001,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": null
+        },
+        {
+          "name": "4 nF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "nF",
+          "resolution": 0.0001,
+          "Ce_pct": 0.4,
+          "Ce_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 pF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "pF",
+          "resolution": 0.01,
+          "Ce_pct": 0.6,
+          "Ce_digits": 3,
+          "De_abs": 0.006,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 pF",
+          "min": 0.0,
+          "max": 39.99,
+          "unit": "pF",
+          "resolution": 0.01,
+          "Ce_pct": 2.5,
+          "Ce_digits": 5,
+          "De_abs": null,
+          "equiv": "PAR"
+        }
+      ]
+    },
+    "40k_50k": {
+      "freqs_Hz": [40000, 50000],
+      "ranges": [
+        {
+          "name": "100 µF",
+          "min": 40.0,
+          "max": 100.0,
+          "unit": "µF",
+          "resolution": 0.01,
+          "Ce_pct": 6.0,
+          "Ce_digits": 5,
+          "De_abs": 0.06,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 µF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "µF",
+          "resolution": 0.001,
+          "Ce_pct": 4.0,
+          "Ce_digits": 3,
+          "De_abs": 0.04,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 µF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "µF",
+          "resolution": 0.0001,
+          "Ce_pct": 1.0,
+          "Ce_digits": 2,
+          "De_abs": 0.01,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 nF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "nF",
+          "resolution": 0.01,
+          "Ce_pct": 0.6,
+          "Ce_digits": 2,
+          "De_abs": 0.006,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 nF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "nF",
+          "resolution": 0.001,
+          "Ce_pct": 0.6,
+          "Ce_digits": 2,
+          "De_abs": 0.006,
+          "equiv": null
+        },
+        {
+          "name": "4 nF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "nF",
+          "resolution": 0.0001,
+          "Ce_pct": 0.6,
+          "Ce_digits": 2,
+          "De_abs": 0.006,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 pF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "pF",
+          "resolution": 0.01,
+          "Ce_pct": 1.0,
+          "Ce_digits": 3,
+          "De_abs": 0.01,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 pF",
+          "min": 0.0,
+          "max": 39.99,
+          "unit": "pF",
+          "resolution": 0.01,
+          "Ce_pct": 3.0,
+          "Ce_digits": 5,
+          "De_abs": null,
+          "equiv": "PAR"
+        }
+      ]
+    },
+    "75k_100k": {
+      "freqs_Hz": [75000, 100000],
+      "ranges": [
+        {
+          "name": "10 µF",
+          "min": 4.0,
+          "max": 10.0,
+          "unit": "µF",
+          "resolution": 0.001,
+          "Ce_pct": 8.0,
+          "Ce_digits": 20,
+          "De_abs": 0.08,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 µF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "µF",
+          "resolution": 0.0001,
+          "Ce_pct": 5.0,
+          "Ce_digits": 10,
+          "De_abs": 0.05,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 nF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "nF",
+          "resolution": 0.01,
+          "Ce_pct": 1.5,
+          "Ce_digits": 5,
+          "De_abs": 0.015,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 nF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "nF",
+          "resolution": 0.001,
+          "Ce_pct": 1.0,
+          "Ce_digits": 2,
+          "De_abs": 0.01,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 nF",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "nF",
+          "resolution": 0.0001,
+          "Ce_pct": 1.0,
+          "Ce_digits": 2,
+          "De_abs": 0.01,
+          "equiv": null
+        },
+        {
+          "name": "400 pF",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "pF",
+          "resolution": 0.01,
+          "Ce_pct": 1.5,
+          "Ce_digits": 5,
+          "De_abs": 0.015,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 pF",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "pF",
+          "resolution": 0.001,
+          "Ce_pct": 2.0,
+          "Ce_digits": 5,
+          "De_abs": 0.02,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 pF",
+          "min": 0.0,
+          "max": 3.999,
+          "unit": "pF",
+          "resolution": 0.001,
+          "Ce_pct": 5.0,
+          "Ce_digits": 10,
+          "De_abs": null,
+          "equiv": "PAR"
+        }
+      ]
+    }
+  },
+  "inductance": {
+    "100_120_400": {
+      "freqs_Hz": [100, 120, 400],
+      "ranges": [
+        {
+          "name": "1000 H",
+          "min": 400.0,
+          "max": 999.9,
+          "unit": "H",
+          "resolution": 0.1,
+          "Le_pct": 2.0,
+          "Le_digits": 3,
+          "De_abs": 0.02,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 H",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "H",
+          "resolution": 0.01,
+          "Le_pct": 0.6,
+          "Le_digits": 2,
+          "De_abs": 0.006,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 H",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "H",
+          "resolution": 0.001,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 H",
+          "min": 400.0,
+          "max": 3999.9,
+          "unit": "mH",
+          "resolution": 0.1,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": null
+        },
+        {
+          "name": "400 mH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "mH",
+          "resolution": 0.01,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 mH",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "mH",
+          "resolution": 0.001,
+          "Le_pct": 0.6,
+          "Le_digits": 3,
+          "De_abs": 0.006,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 mH",
+          "min": 0.0,
+          "max": 3.999,
+          "unit": "mH",
+          "resolution": 0.001,
+          "Le_pct": 3.0,
+          "Le_digits": 5,
+          "De_abs": null,
+          "equiv": "SER"
+        }
+      ]
+    },
+    "1k_4k": {
+      "freqs_Hz": [1000, 4000],
+      "ranges": [
+        {
+          "name": "1 H",
+          "min": 400.0,
+          "max": 999.9,
+          "unit": "mH",
+          "resolution": 0.1,
+          "Le_pct": 1.5,
+          "Le_digits": 3,
+          "De_abs": 0.015,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 mH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "mH",
+          "resolution": 0.01,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 mH",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "mH",
+          "resolution": 0.001,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": null
+        },
+        {
+          "name": "4 mH",
+          "min": 400.0,
+          "max": 3999.9,
+          "unit": "µH",
+          "resolution": 0.1,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 µH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "µH",
+          "resolution": 0.01,
+          "Le_pct": 0.8,
+          "Le_digits": 3,
+          "De_abs": 0.008,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 µH",
+          "min": 0.0,
+          "max": 39.99,
+          "unit": "µH",
+          "resolution": 0.01,
+          "Le_pct": 3.0,
+          "Le_digits": 5,
+          "De_abs": null,
+          "equiv": "SER"
+        }
+      ]
+    },
+    "10k": {
+      "freqs_Hz": [10000],
+      "ranges": [
+        {
+          "name": "100 H",
+          "min": 40.0,
+          "max": 100.0,
+          "unit": "H",
+          "resolution": 0.01,
+          "Le_pct": 2.0,
+          "Le_digits": 3,
+          "De_abs": 0.02,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 H",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "H",
+          "resolution": 0.001,
+          "Le_pct": 0.6,
+          "Le_digits": 2,
+          "De_abs": 0.006,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 H",
+          "min": 400.0,
+          "max": 3999.9,
+          "unit": "mH",
+          "resolution": 0.1,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 mH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "mH",
+          "resolution": 0.01,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": null
+        },
+        {
+          "name": "40 mH",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "mH",
+          "resolution": 0.001,
+          "Le_pct": 0.4,
+          "Le_digits": 2,
+          "De_abs": 0.004,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 mH",
+          "min": 400.0,
+          "max": 3999.9,
+          "unit": "µH",
+          "resolution": 0.1,
+          "Le_pct": 1.0,
+          "Le_digits": 3,
+          "De_abs": 0.01,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 µH",
+          "min": 0.0,
+          "max": 399.99,
+          "unit": "µH",
+          "resolution": 0.01,
+          "Le_pct": 3.0,
+          "Le_digits": 5,
+          "De_abs": null,
+          "equiv": "SER"
+        }
+      ]
+    },
+    "40k_50k": {
+      "freqs_Hz": [40000, 50000],
+      "ranges": [
+        {
+          "name": "1 H",
+          "min": 400.0,
+          "max": 999.9,
+          "unit": "mH",
+          "resolution": 0.1,
+          "Le_pct": 2.0,
+          "Le_digits": 4,
+          "De_abs": 0.02,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 mH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "mH",
+          "resolution": 0.01,
+          "Le_pct": 0.8,
+          "Le_digits": 2,
+          "De_abs": 0.008,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 mH",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "mH",
+          "resolution": 0.001,
+          "Le_pct": 0.8,
+          "Le_digits": 2,
+          "De_abs": 0.008,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 mH",
+          "min": 400.0,
+          "max": 3999.9,
+          "unit": "µH",
+          "resolution": 0.1,
+          "Le_pct": 0.8,
+          "Le_digits": 2,
+          "De_abs": 0.008,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 µH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "µH",
+          "resolution": 0.01,
+          "Le_pct": 1.5,
+          "Le_digits": 3,
+          "De_abs": 0.015,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 µH",
+          "min": 0.0,
+          "max": 39.99,
+          "unit": "µH",
+          "resolution": 0.01,
+          "Le_pct": 4.0,
+          "Le_digits": 5,
+          "De_abs": null,
+          "equiv": "SER"
+        }
+      ]
+    },
+    "75k_100k": {
+      "freqs_Hz": [75000, 100000],
+      "ranges": [
+        {
+          "name": "400 mH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "mH",
+          "resolution": 0.01,
+          "Le_pct": 2.5,
+          "Le_digits": 2,
+          "De_abs": 0.025,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 mH",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "mH",
+          "resolution": 0.001,
+          "Le_pct": 1.5,
+          "Le_digits": 2,
+          "De_abs": 0.015,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 mH",
+          "min": 400.0,
+          "max": 3999.9,
+          "unit": "µH",
+          "resolution": 0.1,
+          "Le_pct": 1.0,
+          "Le_digits": 2,
+          "De_abs": 0.01,
+          "equiv": null
+        },
+        {
+          "name": "400 µH",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "µH",
+          "resolution": 0.01,
+          "Le_pct": 1.0,
+          "Le_digits": 2,
+          "De_abs": 0.01,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 µH",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "µH",
+          "resolution": 0.001,
+          "Le_pct": 1.5,
+          "Le_digits": 5,
+          "De_abs": 0.015,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 µH",
+          "min": 0.0,
+          "max": 3.999,
+          "unit": "µH",
+          "resolution": 0.001,
+          "Le_pct": 4.0,
+          "Le_digits": 10,
+          "De_abs": null,
+          "equiv": "SER"
+        }
+      ]
+    }
+  },
+  "impedance": {
+    "100_120_400_1k_4k_10k": {
+      "freqs_Hz": [100, 120, 400, 1000, 4000, 10000],
+      "ranges": [
+        {
+          "name": "20 MΩ",
+          "min": 4.0,
+          "max": 20.0,
+          "unit": "MΩ",
+          "resolution": 0.001,
+          "Ze_pct": 3.0,
+          "Ze_digits": 10,
+          "theta_deg": 3.4,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 MΩ",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "MΩ",
+          "resolution": 0.0001,
+          "Ze_pct": 1.2,
+          "Ze_digits": 3,
+          "theta_deg": 0.7,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 kΩ",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "kΩ",
+          "resolution": 0.01,
+          "Ze_pct": 0.3,
+          "Ze_digits": 3,
+          "theta_deg": 0.2,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 kΩ",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "kΩ",
+          "resolution": 0.001,
+          "Ze_pct": 0.25,
+          "Ze_digits": 2,
+          "theta_deg": 0.1,
+          "equiv": null
+        },
+        {
+          "name": "4 kΩ",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "kΩ",
+          "resolution": 0.0001,
+          "Ze_pct": 0.25,
+          "Ze_digits": 2,
+          "theta_deg": 0.1,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 Ω",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "Ω",
+          "resolution": 0.01,
+          "Ze_pct": 0.25,
+          "Ze_digits": 2,
+          "theta_deg": 0.1,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 Ω",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "Ω",
+          "resolution": 0.001,
+          "Ze_pct": 0.5,
+          "Ze_digits": 3,
+          "theta_deg": 0.3,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 Ω",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "Ω",
+          "resolution": 0.0001,
+          "Ze_pct": 2.0,
+          "Ze_digits": 3,
+          "theta_deg": 1.1,
+          "equiv": "SER"
+        },
+        {
+          "name": "0.4 Ω",
+          "min": 0.0,
+          "max": 0.3999,
+          "unit": "Ω",
+          "resolution": 0.0001,
+          "Ze_pct": 4.0,
+          "Ze_digits": 3,
+          "theta_deg": null,
+          "equiv": "SER"
+        }
+      ]
+    },
+    "40k_50k": {
+      "freqs_Hz": [40000, 50000],
+      "ranges": [
+        {
+          "name": "20 MΩ",
+          "min": 4.0,
+          "max": 20.0,
+          "unit": "MΩ",
+          "resolution": 0.001,
+          "Ze_pct": 7.0,
+          "Ze_digits": 41,
+          "theta_deg": 4.0,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 MΩ",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "MΩ",
+          "resolution": 0.0001,
+          "Ze_pct": 2.5,
+          "Ze_digits": 3,
+          "theta_deg": 1.4,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 kΩ",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "kΩ",
+          "resolution": 0.01,
+          "Ze_pct": 1.0,
+          "Ze_digits": 4,
+          "theta_deg": 0.6,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 kΩ",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "kΩ",
+          "resolution": 0.001,
+          "Ze_pct": 1.0,
+          "Ze_digits": 4,
+          "theta_deg": 0.6,
+          "equiv": null
+        },
+        {
+          "name": "4 kΩ",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "kΩ",
+          "resolution": 0.0001,
+          "Ze_pct": 0.5,
+          "Ze_digits": 3,
+          "theta_deg": 0.3,
+          "equiv": "SER"
+        },
+        {
+          "name": "400 Ω",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "Ω",
+          "resolution": 0.01,
+          "Ze_pct": 0.5,
+          "Ze_digits": 3,
+          "theta_deg": 0.3,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 Ω",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "Ω",
+          "resolution": 0.001,
+          "Ze_pct": 0.7,
+          "Ze_digits": 4,
+          "theta_deg": 0.4,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 Ω",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "Ω",
+          "resolution": 0.0001,
+          "Ze_pct": 2.0,
+          "Ze_digits": 6,
+          "theta_deg": 1.1,
+          "equiv": "SER"
+        },
+        {
+          "name": "0.4 Ω",
+          "min": 0.0,
+          "max": 0.3999,
+          "unit": "Ω",
+          "resolution": 0.0001,
+          "Ze_pct": 5.0,
+          "Ze_digits": 10,
+          "theta_deg": null,
+          "equiv": "SER"
+        }
+      ]
+    },
+    "75k_100k": {
+      "freqs_Hz": [75000, 100000],
+      "ranges": [
+        {
+          "name": "20 MΩ",
+          "min": 4.0,
+          "max": 20.0,
+          "unit": "MΩ",
+          "resolution": 0.001,
+          "Ze_pct": 9.0,
+          "Ze_digits": 20,
+          "theta_deg": 5.2,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 MΩ",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "MΩ",
+          "resolution": 0.0001,
+          "Ze_pct": 4.0,
+          "Ze_digits": 10,
+          "theta_deg": 2.3,
+          "equiv": "PAR"
+        },
+        {
+          "name": "400 kΩ",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "kΩ",
+          "resolution": 0.01,
+          "Ze_pct": 1.5,
+          "Ze_digits": 4,
+          "theta_deg": 0.9,
+          "equiv": "PAR"
+        },
+        {
+          "name": "40 kΩ",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "kΩ",
+          "resolution": 0.001,
+          "Ze_pct": 1.0,
+          "Ze_digits": 2,
+          "theta_deg": 0.6,
+          "equiv": "PAR"
+        },
+        {
+          "name": "4 kΩ",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "kΩ",
+          "resolution": 0.0001,
+          "Ze_pct": 0.7,
+          "Ze_digits": 2,
+          "theta_deg": 0.4,
+          "equiv": null
+        },
+        {
+          "name": "400 Ω",
+          "min": 40.0,
+          "max": 399.99,
+          "unit": "Ω",
+          "resolution": 0.01,
+          "Ze_pct": 0.7,
+          "Ze_digits": 2,
+          "theta_deg": 0.4,
+          "equiv": "SER"
+        },
+        {
+          "name": "40 Ω",
+          "min": 4.0,
+          "max": 39.999,
+          "unit": "Ω",
+          "resolution": 0.001,
+          "Ze_pct": 1.0,
+          "Ze_digits": 5,
+          "theta_deg": 0.6,
+          "equiv": "SER"
+        },
+        {
+          "name": "4 Ω",
+          "min": 0.4,
+          "max": 3.9999,
+          "unit": "Ω",
+          "resolution": 0.0001,
+          "Ze_pct": 3.0,
+          "Ze_digits": 10,
+          "theta_deg": 1.7,
+          "equiv": "SER"
+        },
+        {
+          "name": "0.4 Ω",
+          "min": 0.0,
+          "max": 0.3999,
+          "unit": "Ω",
+          "resolution": 0.0001,
+          "Ze_pct": 7.0,
+          "Ze_digits": 20,
+          "theta_deg": null,
+          "equiv": "SER"
+        }
+      ]
+    }
+  }
+}
