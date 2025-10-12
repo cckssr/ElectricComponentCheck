@@ -1,2 +1,3 @@
 PySide6==6.9.0
 tomlkit==0.13.3
+pybis

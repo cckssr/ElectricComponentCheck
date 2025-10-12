@@ -17,50 +17,69 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QFrame,
     QGridLayout, QLabel, QLineEdit, QMainWindow,
-    QMenuBar, QSizePolicy, QStatusBar, QToolBox,
-    QWidget)
+    QMenuBar, QProgressBar, QSizePolicy, QStatusBar,
+    QToolBox, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1140, 873)
+        MainWindow.resize(997, 873)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.toolBox = QToolBox(self.centralwidget)
-        self.toolBox.setObjectName(u"toolBox")
+        self.specific = QToolBox(self.centralwidget)
+        self.specific.setObjectName(u"specific")
         self.resistor = QWidget()
         self.resistor.setObjectName(u"resistor")
-        self.resistor.setGeometry(QRect(0, 0, 1116, 459))
-        self.toolBox.addItem(self.resistor, u"Widerstand")
+        self.resistor.setGeometry(QRect(0, 0, 482, 391))
+        self.formLayout = QFormLayout(self.resistor)
+        self.formLayout.setObjectName(u"formLayout")
+        self.specific.addItem(self.resistor, u"Widerstand")
         self.capacitor = QWidget()
         self.capacitor.setObjectName(u"capacitor")
-        self.capacitor.setGeometry(QRect(0, 0, 1116, 459))
-        self.toolBox.addItem(self.capacitor, u"Kondensator")
+        self.capacitor.setGeometry(QRect(0, 0, 482, 391))
+        self.formLayout_7 = QFormLayout(self.capacitor)
+        self.formLayout_7.setObjectName(u"formLayout_7")
+        self.specific.addItem(self.capacitor, u"Kondensator")
         self.inductor = QWidget()
         self.inductor.setObjectName(u"inductor")
-        self.inductor.setGeometry(QRect(0, 0, 1116, 459))
-        self.toolBox.addItem(self.inductor, u"Induktivit\u00e4t")
+        self.inductor.setGeometry(QRect(0, 0, 482, 391))
+        self.formLayout_8 = QFormLayout(self.inductor)
+        self.formLayout_8.setObjectName(u"formLayout_8")
+        self.specific.addItem(self.inductor, u"Induktivit\u00e4t")
         self.transistor = QWidget()
         self.transistor.setObjectName(u"transistor")
-        self.transistor.setGeometry(QRect(0, 0, 1116, 459))
-        self.toolBox.addItem(self.transistor, u"Transistor")
+        self.transistor.setGeometry(QRect(0, 0, 482, 391))
+        self.formLayout_9 = QFormLayout(self.transistor)
+        self.formLayout_9.setObjectName(u"formLayout_9")
+        self.specific.addItem(self.transistor, u"Transistor")
         self.switch_2 = QWidget()
         self.switch_2.setObjectName(u"switch_2")
-        self.switch_2.setGeometry(QRect(0, 0, 1116, 459))
-        self.toolBox.addItem(self.switch_2, u"Schalter")
+        self.switch_2.setGeometry(QRect(0, 0, 482, 391))
+        self.formLayout_10 = QFormLayout(self.switch_2)
+        self.formLayout_10.setObjectName(u"formLayout_10")
+        self.specific.addItem(self.switch_2, u"Schalter")
         self.fuse = QWidget()
         self.fuse.setObjectName(u"fuse")
-        self.fuse.setGeometry(QRect(0, 0, 1116, 459))
-        self.toolBox.addItem(self.fuse, u"Sicherung")
+        self.fuse.setGeometry(QRect(0, 0, 482, 391))
+        self.formLayout_11 = QFormLayout(self.fuse)
+        self.formLayout_11.setObjectName(u"formLayout_11")
+        self.specific.addItem(self.fuse, u"Sicherung")
 
-        self.gridLayout.addWidget(self.toolBox, 2, 1, 1, 1)
+        self.gridLayout.addWidget(self.specific, 4, 1, 1, 1)
 
-        self.gridLayout_2 = QGridLayout()
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.gridLayout_2.setContentsMargins(-1, -1, -1, 10)
+        self.line_2 = QFrame(self.centralwidget)
+        self.line_2.setObjectName(u"line_2")
+        self.line_2.setFrameShape(QFrame.Shape.HLine)
+        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout.addWidget(self.line_2, 3, 1, 1, 2)
+
+        self.general = QGridLayout()
+        self.general.setObjectName(u"general")
+        self.general.setContentsMargins(-1, -1, -1, 10)
         self.formLayout_2 = QFormLayout()
         self.formLayout_2.setObjectName(u"formLayout_2")
         self.formLayout_2.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
@@ -87,47 +106,19 @@ class Ui_MainWindow(object):
         self.formLayout_2.setWidget(0, QFormLayout.ItemRole.FieldRole, self.barcode)
 
 
-        self.gridLayout_2.addLayout(self.formLayout_2, 0, 0, 1, 1)
+        self.general.addLayout(self.formLayout_2, 0, 0, 1, 1)
 
         self.formLayout_6 = QFormLayout()
         self.formLayout_6.setObjectName(u"formLayout_6")
         self.formLayout_6.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         self.formLayout_6.setContentsMargins(-1, -1, -1, 0)
-        self.status = QComboBox(self.centralwidget)
-        self.status.addItem("")
-        self.status.addItem("")
-        self.status.addItem("")
-        self.status.addItem("")
-        self.status.addItem("")
-        self.status.addItem("")
-        self.status.setObjectName(u"status")
-        sizePolicy1.setHeightForWidth(self.status.sizePolicy().hasHeightForWidth())
-        self.status.setSizePolicy(sizePolicy1)
-
-        self.formLayout_6.setWidget(0, QFormLayout.ItemRole.FieldRole, self.status)
-
-        self.label_5 = QLabel(self.centralwidget)
-        self.label_5.setObjectName(u"label_5")
-        sizePolicy.setHeightForWidth(self.label_5.sizePolicy().hasHeightForWidth())
-        self.label_5.setSizePolicy(sizePolicy)
-        self.label_5.setMinimumSize(QSize(150, 0))
-
-        self.formLayout_6.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_5)
-
-
-        self.gridLayout_2.addLayout(self.formLayout_6, 2, 1, 1, 1)
-
-        self.formLayout_5 = QFormLayout()
-        self.formLayout_5.setObjectName(u"formLayout_5")
-        self.formLayout_5.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-        self.formLayout_5.setContentsMargins(-1, -1, -1, 0)
         self.label_4 = QLabel(self.centralwidget)
         self.label_4.setObjectName(u"label_4")
         sizePolicy.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
         self.label_4.setSizePolicy(sizePolicy)
         self.label_4.setMinimumSize(QSize(150, 0))
 
-        self.formLayout_5.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_4)
+        self.formLayout_6.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_4)
 
         self.orig_name = QLineEdit(self.centralwidget)
         self.orig_name.setObjectName(u"orig_name")
@@ -137,10 +128,41 @@ class Ui_MainWindow(object):
         sizePolicy2.setHeightForWidth(self.orig_name.sizePolicy().hasHeightForWidth())
         self.orig_name.setSizePolicy(sizePolicy2)
 
-        self.formLayout_5.setWidget(0, QFormLayout.ItemRole.FieldRole, self.orig_name)
+        self.formLayout_6.setWidget(0, QFormLayout.ItemRole.FieldRole, self.orig_name)
 
 
-        self.gridLayout_2.addLayout(self.formLayout_5, 2, 0, 1, 1)
+        self.general.addLayout(self.formLayout_6, 2, 1, 1, 1)
+
+        self.formLayout_5 = QFormLayout()
+        self.formLayout_5.setObjectName(u"formLayout_5")
+        self.formLayout_5.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        self.formLayout_5.setContentsMargins(-1, -1, -1, 0)
+        self.label_3 = QLabel(self.centralwidget)
+        self.label_3.setObjectName(u"label_3")
+        sizePolicy.setHeightForWidth(self.label_3.sizePolicy().hasHeightForWidth())
+        self.label_3.setSizePolicy(sizePolicy)
+        self.label_3.setMinimumSize(QSize(150, 0))
+
+        self.formLayout_5.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_3)
+
+        self.manufacturer = QLineEdit(self.centralwidget)
+        self.manufacturer.setObjectName(u"manufacturer")
+        sizePolicy1.setHeightForWidth(self.manufacturer.sizePolicy().hasHeightForWidth())
+        self.manufacturer.setSizePolicy(sizePolicy1)
+
+        self.formLayout_5.setWidget(0, QFormLayout.ItemRole.FieldRole, self.manufacturer)
+
+
+        self.general.addLayout(self.formLayout_5, 2, 0, 1, 1)
+
+        self.object_status = QComboBox(self.centralwidget)
+        self.object_status.addItem("")
+        self.object_status.addItem("")
+        self.object_status.addItem("")
+        self.object_status.setObjectName(u"object_status")
+        self.object_status.setEnabled(False)
+
+        self.general.addWidget(self.object_status, 0, 1, 1, 1)
 
         self.formLayout_3 = QFormLayout()
         self.formLayout_3.setObjectName(u"formLayout_3")
@@ -168,44 +190,93 @@ class Ui_MainWindow(object):
         self.formLayout_3.setWidget(0, QFormLayout.ItemRole.FieldRole, self.type)
 
 
-        self.gridLayout_2.addLayout(self.formLayout_3, 1, 0, 1, 1)
+        self.general.addLayout(self.formLayout_3, 1, 0, 1, 1)
 
         self.formLayout_4 = QFormLayout()
         self.formLayout_4.setObjectName(u"formLayout_4")
         self.formLayout_4.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         self.formLayout_4.setContentsMargins(-1, -1, -1, 0)
-        self.label_3 = QLabel(self.centralwidget)
-        self.label_3.setObjectName(u"label_3")
-        sizePolicy.setHeightForWidth(self.label_3.sizePolicy().hasHeightForWidth())
-        self.label_3.setSizePolicy(sizePolicy)
-        self.label_3.setMinimumSize(QSize(150, 0))
+        self.label_5 = QLabel(self.centralwidget)
+        self.label_5.setObjectName(u"label_5")
+        sizePolicy.setHeightForWidth(self.label_5.sizePolicy().hasHeightForWidth())
+        self.label_5.setSizePolicy(sizePolicy)
+        self.label_5.setMinimumSize(QSize(150, 0))
 
-        self.formLayout_4.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_3)
+        self.formLayout_4.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_5)
 
-        self.manufacturer = QLineEdit(self.centralwidget)
-        self.manufacturer.setObjectName(u"manufacturer")
-        sizePolicy1.setHeightForWidth(self.manufacturer.sizePolicy().hasHeightForWidth())
-        self.manufacturer.setSizePolicy(sizePolicy1)
+        self.status = QComboBox(self.centralwidget)
+        self.status.addItem("")
+        self.status.addItem("")
+        self.status.addItem("")
+        self.status.addItem("")
+        self.status.addItem("")
+        self.status.addItem("")
+        self.status.setObjectName(u"status")
+        sizePolicy1.setHeightForWidth(self.status.sizePolicy().hasHeightForWidth())
+        self.status.setSizePolicy(sizePolicy1)
 
-        self.formLayout_4.setWidget(0, QFormLayout.ItemRole.FieldRole, self.manufacturer)
+        self.formLayout_4.setWidget(0, QFormLayout.ItemRole.FieldRole, self.status)
 
 
-        self.gridLayout_2.addLayout(self.formLayout_4, 1, 1, 1, 1)
+        self.general.addLayout(self.formLayout_4, 1, 1, 1, 1)
 
 
-        self.gridLayout.addLayout(self.gridLayout_2, 0, 1, 1, 1)
+        self.gridLayout.addLayout(self.general, 2, 1, 1, 2)
 
-        self.line_2 = QFrame(self.centralwidget)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShape(QFrame.Shape.HLine)
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+        self.line = QFrame(self.centralwidget)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.HLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout.addWidget(self.line_2, 1, 1, 1, 1)
+        self.gridLayout.addWidget(self.line, 1, 1, 1, 2)
 
+        self.plot_widget = QWidget(self.centralwidget)
+        self.plot_widget.setObjectName(u"plot_widget")
+        self.plot_widget.setMinimumSize(QSize(100, 0))
+
+        self.gridLayout.addWidget(self.plot_widget, 4, 2, 1, 1)
+
+        self.openbis = QGridLayout()
+        self.openbis.setObjectName(u"openbis")
+        self.openbis.setContentsMargins(-1, -1, -1, 0)
+        self.openbis_progress = QProgressBar(self.centralwidget)
+        self.openbis_progress.setObjectName(u"openbis_progress")
+        self.openbis_progress.setValue(0)
+        self.openbis_progress.setInvertedAppearance(False)
+
+        self.openbis.addWidget(self.openbis_progress, 0, 2, 1, 1)
+
+        self.openbis_progress_text = QLabel(self.centralwidget)
+        self.openbis_progress_text.setObjectName(u"openbis_progress_text")
+
+        self.openbis.addWidget(self.openbis_progress_text, 1, 2, 1, 1)
+
+        self.session_token = QLineEdit(self.centralwidget)
+        self.session_token.setObjectName(u"session_token")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.session_token.sizePolicy().hasHeightForWidth())
+        self.session_token.setSizePolicy(sizePolicy3)
+
+        self.openbis.addWidget(self.session_token, 0, 1, 2, 1)
+
+        self.label_6 = QLabel(self.centralwidget)
+        self.label_6.setObjectName(u"label_6")
+
+        self.openbis.addWidget(self.label_6, 0, 0, 2, 1)
+
+        self.openbis.setColumnStretch(1, 2)
+        self.openbis.setColumnStretch(2, 1)
+
+        self.gridLayout.addLayout(self.openbis, 0, 1, 1, 2)
+
+        self.gridLayout.setColumnStretch(1, 1)
+        self.gridLayout.setColumnStretch(2, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1140, 24))
+        self.menubar.setGeometry(QRect(0, 0, 997, 24))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -214,36 +285,30 @@ class Ui_MainWindow(object):
         self.label.setBuddy(self.label)
 #endif // QT_CONFIG(shortcut)
         QWidget.setTabOrder(self.barcode, self.type)
-        QWidget.setTabOrder(self.type, self.manufacturer)
-        QWidget.setTabOrder(self.manufacturer, self.orig_name)
-        QWidget.setTabOrder(self.orig_name, self.status)
 
         self.retranslateUi(MainWindow)
 
-        self.toolBox.setCurrentIndex(0)
+        self.specific.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.resistor), QCoreApplication.translate("MainWindow", u"Widerstand", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.capacitor), QCoreApplication.translate("MainWindow", u"Kondensator", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.inductor), QCoreApplication.translate("MainWindow", u"Induktivit\u00e4t", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.transistor), QCoreApplication.translate("MainWindow", u"Transistor", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.switch_2), QCoreApplication.translate("MainWindow", u"Schalter", None))
-        self.toolBox.setItemText(self.toolBox.indexOf(self.fuse), QCoreApplication.translate("MainWindow", u"Sicherung", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Elektrische Komponentencheck", None))
+        self.specific.setItemText(self.specific.indexOf(self.resistor), QCoreApplication.translate("MainWindow", u"Widerstand", None))
+        self.specific.setItemText(self.specific.indexOf(self.capacitor), QCoreApplication.translate("MainWindow", u"Kondensator", None))
+        self.specific.setItemText(self.specific.indexOf(self.inductor), QCoreApplication.translate("MainWindow", u"Induktivit\u00e4t", None))
+        self.specific.setItemText(self.specific.indexOf(self.transistor), QCoreApplication.translate("MainWindow", u"Transistor", None))
+        self.specific.setItemText(self.specific.indexOf(self.switch_2), QCoreApplication.translate("MainWindow", u"Schalter", None))
+        self.specific.setItemText(self.specific.indexOf(self.fuse), QCoreApplication.translate("MainWindow", u"Sicherung", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Barcode", None))
-        self.status.setItemText(0, QCoreApplication.translate("MainWindow", u"Funktioniert", u"FUNC"))
-        self.status.setItemText(1, QCoreApplication.translate("MainWindow", u"Unkalibriert", u"NOCALB"))
-        self.status.setItemText(2, QCoreApplication.translate("MainWindow", u"Kalibriert", u"OK"))
-        self.status.setItemText(3, QCoreApplication.translate("MainWindow", u"Unbekannt", u"UNKWN"))
-        self.status.setItemText(4, QCoreApplication.translate("MainWindow", u"Defekt", u"DEF"))
-        self.status.setItemText(5, QCoreApplication.translate("MainWindow", u"Archiviert", u"ARCHIVE"))
-
-        self.label_5.setText(QCoreApplication.translate("MainWindow", u"Funktionsstatus", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Herstellerbezeichnung</p></body></html>", None))
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Hersteller", None))
+        self.object_status.setItemText(0, "")
+        self.object_status.setItemText(1, QCoreApplication.translate("MainWindow", u"Neues Objekt", None))
+        self.object_status.setItemText(2, QCoreApplication.translate("MainWindow", u"Bekannt", None))
+
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"Kategorie", None))
         self.type.setItemText(0, QCoreApplication.translate("MainWindow", u"Widerstand", None))
         self.type.setItemText(1, QCoreApplication.translate("MainWindow", u"Kondensator", None))
@@ -252,6 +317,15 @@ class Ui_MainWindow(object):
         self.type.setItemText(4, QCoreApplication.translate("MainWindow", u"Schalter", None))
         self.type.setItemText(5, QCoreApplication.translate("MainWindow", u"Sicherung", None))
 
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Hersteller", None))
+        self.label_5.setText(QCoreApplication.translate("MainWindow", u"Funktionsstatus", None))
+        self.status.setItemText(0, QCoreApplication.translate("MainWindow", u"Funktioniert", u"FUNC"))
+        self.status.setItemText(1, QCoreApplication.translate("MainWindow", u"Unkalibriert", u"NOCALB"))
+        self.status.setItemText(2, QCoreApplication.translate("MainWindow", u"Kalibriert", u"OK"))
+        self.status.setItemText(3, QCoreApplication.translate("MainWindow", u"Unbekannt", u"UNKWN"))
+        self.status.setItemText(4, QCoreApplication.translate("MainWindow", u"Defekt", u"DEF"))
+        self.status.setItemText(5, QCoreApplication.translate("MainWindow", u"Archiviert", u"ARCHIVE"))
+
+        self.openbis_progress_text.setText("")
+        self.label_6.setText(QCoreApplication.translate("MainWindow", u"Session Token", None))
     # retranslateUi
 

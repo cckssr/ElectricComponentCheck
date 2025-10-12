@@ -6,102 +6,115 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1140</width>
+    <width>997</width>
     <height>873</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Elektrische Komponentencheck</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
-    <item row="2" column="1">
-     <widget class="QToolBox" name="toolBox">
+   <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,1">
+    <item row="4" column="1">
+     <widget class="QToolBox" name="specific">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="resistor">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1116</width>
-         <height>459</height>
+         <width>482</width>
+         <height>391</height>
         </rect>
        </property>
        <attribute name="label">
         <string>Widerstand</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout"/>
       </widget>
       <widget class="QWidget" name="capacitor">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1116</width>
-         <height>459</height>
+         <width>482</width>
+         <height>391</height>
         </rect>
        </property>
        <attribute name="label">
         <string>Kondensator</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout_7"/>
       </widget>
       <widget class="QWidget" name="inductor">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1116</width>
-         <height>459</height>
+         <width>482</width>
+         <height>391</height>
         </rect>
        </property>
        <attribute name="label">
         <string>Induktivität</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout_8"/>
       </widget>
       <widget class="QWidget" name="transistor">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1116</width>
-         <height>459</height>
+         <width>482</width>
+         <height>391</height>
         </rect>
        </property>
        <attribute name="label">
         <string>Transistor</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout_9"/>
       </widget>
       <widget class="QWidget" name="switch_2">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1116</width>
-         <height>459</height>
+         <width>482</width>
+         <height>391</height>
         </rect>
        </property>
        <attribute name="label">
         <string>Schalter</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout_10"/>
       </widget>
       <widget class="QWidget" name="fuse">
        <property name="geometry">
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1116</width>
-         <height>459</height>
+         <width>482</width>
+         <height>391</height>
         </rect>
        </property>
        <attribute name="label">
         <string>Sicherung</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout_11"/>
       </widget>
      </widget>
     </item>
-    <item row="0" column="1">
-     <layout class="QGridLayout" name="gridLayout_2">
+    <item row="3" column="1" colspan="2">
+     <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1" colspan="2">
+     <layout class="QGridLayout" name="general">
       <property name="bottomMargin">
        <number>10</number>
       </property>
@@ -155,75 +168,6 @@
         <property name="bottomMargin">
          <number>0</number>
         </property>
-        <item row="0" column="1">
-         <widget class="QComboBox" name="status">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <item>
-           <property name="text">
-            <string comment="FUNC">Funktioniert</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string comment="NOCALB">Unkalibriert</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string comment="OK">Kalibriert</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string comment="UNKWN">Unbekannt</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string comment="DEF">Defekt</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string comment="ARCHIVE">Archiviert</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_5">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>150</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Funktionsstatus</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="2" column="0">
-       <layout class="QFormLayout" name="formLayout_5">
-        <property name="fieldGrowthPolicy">
-         <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
         <item row="0" column="0">
          <widget class="QLabel" name="label_4">
           <property name="sizePolicy">
@@ -254,6 +198,67 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item row="2" column="0">
+       <layout class="QFormLayout" name="formLayout_5">
+        <property name="fieldGrowthPolicy">
+         <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_3">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Hersteller</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="manufacturer">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="object_status">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <item>
+         <property name="text">
+          <string/>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Neues Objekt</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Bekannt</string>
+         </property>
+        </item>
+       </widget>
       </item>
       <item row="1" column="0">
        <layout class="QFormLayout" name="formLayout_3">
@@ -333,7 +338,7 @@
          <number>0</number>
         </property>
         <item row="0" column="0">
-         <widget class="QLabel" name="label_3">
+         <widget class="QLabel" name="label_5">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -347,30 +352,111 @@
            </size>
           </property>
           <property name="text">
-           <string>Hersteller</string>
+           <string>Funktionsstatus</string>
           </property>
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="manufacturer">
+         <widget class="QComboBox" name="status">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <item>
+           <property name="text">
+            <string comment="FUNC">Funktioniert</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="NOCALB">Unkalibriert</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="OK">Kalibriert</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="UNKWN">Unbekannt</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="DEF">Defekt</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string comment="ARCHIVE">Archiviert</string>
+           </property>
+          </item>
          </widget>
         </item>
        </layout>
       </item>
      </layout>
     </item>
-    <item row="1" column="1">
-     <widget class="Line" name="line_2">
+    <item row="1" column="1" colspan="2">
+     <widget class="Line" name="line">
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
      </widget>
+    </item>
+    <item row="4" column="2">
+     <widget class="QWidget" name="plot_widget" native="true">
+      <property name="minimumSize">
+       <size>
+        <width>100</width>
+        <height>0</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1" colspan="2">
+     <layout class="QGridLayout" name="openbis" columnstretch="0,2,1">
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item row="0" column="2">
+       <widget class="QProgressBar" name="openbis_progress">
+        <property name="value">
+         <number>0</number>
+        </property>
+        <property name="invertedAppearance">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLabel" name="openbis_progress_text">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1" rowspan="2">
+       <widget class="QLineEdit" name="session_token">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" rowspan="2">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Session Token</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -379,7 +465,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1140</width>
+     <width>997</width>
      <height>24</height>
     </rect>
    </property>
@@ -389,9 +475,6 @@
  <tabstops>
   <tabstop>barcode</tabstop>
   <tabstop>type</tabstop>
-  <tabstop>manufacturer</tabstop>
-  <tabstop>orig_name</tabstop>
-  <tabstop>status</tabstop>
  </tabstops>
  <resources/>
  <connections/>
