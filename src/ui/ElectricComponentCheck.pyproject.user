@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 14.0.2, 2025-10-10T18:10:32. -->
+<!-- Written by QtCreator 14.0.2, 2025-10-17T15:41:31. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -182,13 +182,30 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseTerminal">false</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck</value>
    </valuemap>
-   <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">1</value>
+   <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.1">
+    <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
+    <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
+    <value type="int" key="Analyzer.Valgrind.Callgrind.CostFormat">0</value>
+    <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
+    <valuelist type="QVariantList" key="CustomOutputParsers"/>
+    <value type="int" key="PE.EnvironmentAspect.Base">2</value>
+    <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
+    <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
+    <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph dwarf,4096 -F 250</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">../mainwindow.py</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/src/mainwindow.py</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/src/mainwindow.py</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+    <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/src/mainwindow.py</value>
+    <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/src</value>
+   </valuemap>
+   <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">2</value>
   </valuemap>
  </data>
  <data>
@@ -284,10 +301,8 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck</value>
    </valuemap>
    <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">1</value>
   </valuemap>
@@ -308,8 +323,6 @@
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Python.PysideBuildStep</value>
-      <value type="QString" key="Python.PySideProjectTool">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/.qtcreator/Python_3_12venv/bin/pyside6-project</value>
-      <value type="QString" key="Python.PySideUic">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/.qtcreator/Python_3_12venv/bin/pyside6-uic</value>
      </valuemap>
      <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">1</value>
      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Erstellen</value>
@@ -360,10 +373,8 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/mainwindow.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck</value>
    </valuemap>
    <value type="qlonglong" key="ProjectExplorer.Target.RunConfigurationCount">1</value>
   </valuemap>
