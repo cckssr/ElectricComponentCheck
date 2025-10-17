@@ -28,7 +28,9 @@ from pymeasure.instruments.validators import (
     strict_discrete_set,
 )
 
-log = logging.getLogger(__name__)  # https://docs.python.org/3/howto/logging.html#library-config
+log = logging.getLogger(
+    __name__
+)  # https://docs.python.org/3/howto/logging.html#library-config
 log.addHandler(logging.NullHandler())
 
 _FREQS_HZ = [
@@ -43,7 +45,14 @@ _FREQS_HZ = [
     75_000,
     100_000,
 ]  # Allowed frequencies in Hz
-_RESIS_OHM = ["AUTO", 10, 100, 1_000, 10_000, 100_000]  # Allowed resistance ranges in Ohm
+_RESIS_OHM = [
+    "AUTO",
+    10,
+    100,
+    1_000,
+    10_000,
+    100_000,
+]  # Allowed resistance ranges in Ohm
 _LEVELS_MVRMS = [300, 600]  # Allowed levels in mVrms
 _EQUIV = ["SER", "PAL"]  # Allowed equivalent circuit types
 _IMPA = ["R", "L", "C", "Z", "AUTO"]  # Allowed main measurement parameters
@@ -68,6 +77,22 @@ class LCR500(SCPIMixin, Instrument):
         super().__init__(adapter, name, **kwargs)
         self.adapter.connection.write_termination = "\n"
         self.adapter.connection.read_termination = "\n"
+
+    def _convert_fetch(self, value: str) -> tuple[float, float, int]:
+        """Convert the response of the FETC? command into primary and secondary values.
+
+        The response is expected to be in the format: "P,S,R"
+        where P is the primary value, S is the secondary value, and R is the range.
+        """
+        try:
+            parts = value.split(",")
+            primary = float(parts[0])
+            secondary = float(parts[1])
+            status = int(parts[2])
+            return primary, secondary, status
+        except (IndexError, ValueError) as e:
+            log.error(f"Error parsing fetch response: {value}")
+            raise e
 
     go_to_local = Instrument.setting(
         "*GTL", """Switch the device to local mode and disable key lock."""
@@ -148,4 +173,5 @@ class LCR500(SCPIMixin, Instrument):
     fetch = Instrument.measurement(
         "FETC?",
         """Perform a measurement and return the result for the primary and secondary parameters.""",
+        # get_process=lambda v: self._convert_fetch(v),
     )
