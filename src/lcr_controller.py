@@ -365,12 +365,15 @@ class LCRController(QObject):
     """
 
     # Qt Signals
-    connected = Signal(str)  # Device ID
+    connected = Signal(str)  # Device ID (connection status only)
     disconnected = Signal()
     connection_lost = Signal()
     measurement_ready = Signal(dict)  # Measurement data
     error_occurred = Signal(str)  # Error message
-    status_changed = Signal(str)  # Status message
+    # Transiente Statusmeldungen (nur für Statusbar): message, level(info|success|warning|error), duration(ms)
+    status_message = Signal(str, str, int)
+    # Verbindungsspezifischer Status (nur für UI-Label)
+    status_changed = Signal(str)
 
     def __init__(
         self,
@@ -426,7 +429,7 @@ class LCRController(QObject):
         """
         try:
             self._log(f"Verbinde mit {resource}...")
-            self.status_changed.emit(f"Verbinde mit {resource}...")
+            self.status_message.emit(f"Verbinde mit {resource}...", "info", 2000)
 
             self._hw_controller = LCR500HardwareController(
                 resource=resource,
@@ -438,7 +441,10 @@ class LCRController(QObject):
                 device_id = self._hw_controller.idn
                 self._log(f"Verbunden: {device_id}")
                 self.connected.emit(device_id)
+                # Verbindungsetikett aktualisieren
                 self.status_changed.emit(f"Verbunden: {device_id}")
+                # Transiente Erfolgsmeldung
+                self.status_message.emit("LCR verbunden", "success", 2500)
 
                 # Starte Verbindungsüberwachung
                 self._connection_timer.start()
@@ -446,12 +452,14 @@ class LCRController(QObject):
                 return True
             else:
                 self.error_occurred.emit("Verbindung fehlgeschlagen")
+                self.status_message.emit("LCR-Verbindung fehlgeschlagen", "error", 6000)
                 return False
 
         except Exception as e:
             error_msg = f"Verbindungsfehler: {str(e)}"
             self._log(error_msg)
             self.error_occurred.emit(error_msg)
+            self.status_message.emit(error_msg, "error", 6000)
             return False
 
     def disconnect_device(self) -> None:
@@ -469,7 +477,10 @@ class LCRController(QObject):
 
         self._log("Verbindung getrennt")
         self.disconnected.emit()
+        # Verbindungsetikett
         self.status_changed.emit("Verbindung getrennt")
+        # Transiente Info
+        self.status_message.emit("LCR-Verbindung getrennt", "info", 2000)
 
     def is_connected(self) -> bool:
         """Prüft, ob das Gerät verbunden ist."""
@@ -488,6 +499,12 @@ class LCRController(QObject):
             self._connection_timer.stop()
             self.connection_lost.emit()
             self.error_occurred.emit("Verbindung zum Gerät verloren")
+            # Verbindungsetikett
+            self.status_changed.emit("Verbindung verloren")
+            # Transiente Warnung
+            self.status_message.emit(
+                "Verbindung zum LCR-Gerät verloren", "warning", 5000
+            )
             self._hw_controller = None
 
     def measure_single(
@@ -615,17 +632,19 @@ class LCRController(QObject):
         measurements = []
         total = len(frequencies_hz)
 
-        self.status_changed.emit(f"Starte Messreihe: {total} Frequenzen")
+        self.status_message.emit(f"Starte Messreihe: {total} Frequenzen", "info", 2000)
 
         for idx, freq in enumerate(frequencies_hz, 1):
-            self.status_changed.emit(f"Messung {idx}/{total}: {freq} Hz")
+            self.status_message.emit(f"Messung {idx}/{total}: {freq} Hz", "info", 1500)
 
             result = self.measure_single(component, freq, voltage_v)
             if result:
                 measurements.append(result)
 
-        self.status_changed.emit(
-            f"Messreihe abgeschlossen: {len(measurements)}/{total} erfolgreich"
+        self.status_message.emit(
+            f"Messreihe abgeschlossen: {len(measurements)}/{total} erfolgreich",
+            "success",
+            3000,
         )
 
         return measurements

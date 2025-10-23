@@ -29,6 +29,7 @@ class MainWindow(QMainWindow):
         # OpenBIS-Verbindungen
         self.ui.session_token.returnPressed.connect(self._on_st_changed)
         self.ui.openbis_progress.setText("Warten auf Session Token...")
+        self.ui.barcode.returnPressed.connect(self._on_barcode_entered)
 
         # LCR-Verbindungen
         self.ui.lcr_refresh_resource.clicked.connect(self._refresh_instruments)
@@ -48,7 +49,7 @@ class MainWindow(QMainWindow):
         self.ui.lcr_resource.clear()
         self.ui.lcr_resource.addItems(instruments)
         self.ui.lcr_resource.setCurrentIndex(-1)
-        self.ui.lcr_progress.setText("Warten auf Verbindung...")
+        self.ui.lcr_progress.setText("Nicht verbunden")
 
         # Automatisch erstes USB-Gerät auswählen
         for inst in instruments:
@@ -77,7 +78,6 @@ class MainWindow(QMainWindow):
         self._connect_lcr_signals()
 
         # Verbinde mit Gerät (Standard: Kondensator)
-        self.ui.lcr_progress.setText(f"Verbinde mit {resource_name}...")
         self.lcr_controller.connect_device(resource_name, "capacitor")
 
     def _connect_lcr_signals(self):
@@ -91,6 +91,8 @@ class MainWindow(QMainWindow):
         self.lcr_controller.measurement_ready.connect(self._on_lcr_measurement)
         self.lcr_controller.error_occurred.connect(self._on_lcr_error)
         self.lcr_controller.status_changed.connect(self._on_lcr_status)
+        # Transiente Statusmeldungen für Statusbar
+        self.lcr_controller.status_message.connect(self._on_status_message)
 
     def _on_lcr_connected(self, device_id: str):
         """LCR-Gerät erfolgreich verbunden."""
@@ -117,8 +119,8 @@ class MainWindow(QMainWindow):
 
     def _on_lcr_error(self, error_msg: str):
         """LCR-Fehler aufgetreten."""
-        self.ui.lcr_progress.setText(f"Fehler: {error_msg}")
-        self.ui.lcr_progress.setStyleSheet("color: red;")
+        # Fehler nur transient in der Statusbar anzeigen
+        self._show_status(error_msg, level="error", duration_ms=6000)
 
     def _on_lcr_status(self, status: str):
         """LCR-Status geändert."""
@@ -140,14 +142,19 @@ class MainWindow(QMainWindow):
             return
 
         # Erstelle OpenBIS-Controller
-        self.ui.openbis_progress.setText("Verbindung zu OpenBIS wird hergestellt...")
-        self.openbis_controller = OpenBISController(server_url=SERVER_URL, debug=True)
+        if not self.openbis_controller or not self.openbis_controller.is_connected():
+            self.ui.openbis_progress.setText(
+                "Verbindung zu OpenBIS wird hergestellt..."
+            )
+            self.openbis_controller = OpenBISController(
+                server_url=SERVER_URL, debug=True
+            )
 
-        # Verbinde Signale
-        self._connect_openbis_signals()
+            # Verbinde Signale
+            self._connect_openbis_signals()
 
-        # Verbinde mit Token
-        self.openbis_controller.connect_with_token(session_token)
+            # Verbinde mit Token
+            self.openbis_controller.connect_with_token(session_token)
 
     def _connect_openbis_signals(self):
         """Verbindet OpenBIS-Controller-Signale mit UI-Updates."""
@@ -167,12 +174,16 @@ class MainWindow(QMainWindow):
         )
         self.openbis_controller.error_occurred.connect(self._on_openbis_error)
         self.openbis_controller.status_changed.connect(self._on_openbis_status)
+        # Transiente Statusmeldungen für Statusbar
+        self.openbis_controller.status_message.connect(self._on_status_message)
 
     def _on_openbis_connected(self, info: str):
         """OpenBIS erfolgreich verbunden."""
         self.ui.openbis_progress.setText(info)
         self.ui.openbis_progress.setStyleSheet("color: green;")
         self.ui.barcode.setEnabled(True)
+        self.ui.barcode.setFocus()
+        self.init_sections()
 
     def _on_openbis_disconnected(self):
         """OpenBIS getrennt."""
@@ -196,12 +207,58 @@ class MainWindow(QMainWindow):
 
     def _on_openbis_error(self, error_msg: str):
         """OpenBIS-Fehler aufgetreten."""
-        self.ui.openbis_progress.setText(f"Fehler: {error_msg}")
-        self.ui.openbis_progress.setStyleSheet("color: red;")
+        # Fehler nur transient in der Statusbar anzeigen
+        self._show_status(error_msg, level="error", duration_ms=6000)
 
     def _on_openbis_status(self, status: str):
         """OpenBIS-Status geändert."""
         self.ui.openbis_progress.setText(status)
+
+    def _on_barcode_entered(self):
+        """Barcode wurde eingegeben."""
+        barcode = self.ui.barcode.text().strip()
+        if not barcode:
+            return
+
+        if not self.openbis_controller or not self.openbis_controller.is_connected():
+            QMessageBox.warning(
+                self,
+                "Fehler",
+                "Nicht mit OpenBIS verbunden. Bitte verbinden Sie sich zuerst.",
+            )
+            return
+
+        self.openbis_controller.search_object(barcode)
+        # Transiente Meldung erfolgt durch Controller
+
+    # ========================================================================
+    # Statusbar Meldungen (transient)
+    # ========================================================================
+
+    def _on_status_message(self, message: str, level: str, duration_ms: int):
+        self._show_status(message, level=level, duration_ms=duration_ms)
+
+    def _show_status(self, message: str, level: str = "info", duration_ms: int = 3000):
+        """Zeigt eine formatierte, temporäre Meldung in der Statusbar an."""
+        bar = self.statusBar()
+        # Farben nach Level
+        color_map = {
+            "info": "",
+            "success": "#1a7f37",  # grün
+            "warning": "#b26a00",  # orange/braun
+            "error": "#d1242f",  # rot
+        }
+        prev_style = bar.styleSheet()
+        color = color_map.get(level, "")
+        if color:
+            bar.setStyleSheet(f"color: {color};")
+        else:
+            bar.setStyleSheet("")
+        bar.showMessage(message, duration_ms)
+        # Nach Ablauf Stil zurücksetzen (einfacher Ansatz)
+        QtCore.QTimer.singleShot(
+            duration_ms + 100, lambda: bar.setStyleSheet(prev_style)
+        )
 
     # ========================================================================
     # Legacy-Methode (für Rückwärtskompatibilität)
@@ -241,6 +298,28 @@ class MainWindow(QMainWindow):
             "switch_2": "Schalter",
             "transistor": "Transistor",
         }
+
+        if self.openbis_controller and self.openbis_controller.is_connected():
+            o_props = self.openbis_controller.init_properties()
+        else:
+            raise RuntimeError("OpenBIS-Controller ist nicht verbunden.")
+
+        # Match existing label style: Fixed horizontal, Preferred vertical, min width 150
+        label_sp = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Preferred,
+        )
+        label_sp.setHorizontalStretch(0)
+        label_sp.setVerticalStretch(0)
+
+        # Match existing field style: MinimumExpanding horizontal, Fixed vertical
+        field_sp = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.Fixed,
+        )
+        field_sp.setHorizontalStretch(0)
+        field_sp.setVerticalStretch(0)
+
         for key, value in sections.items():
             section = getattr(self.ui, key, None)
             if not section or not hasattr(section, "layout"):
@@ -250,41 +329,59 @@ class MainWindow(QMainWindow):
             if layout is None:
                 continue
 
-            label = QtWidgets.QLabel(value)
-            line_edit = QtWidgets.QLineEdit()
+            properties = o_props.get(value, {})
+            if not properties:
+                continue
 
-            # Match existing label style: Fixed horizontal, Preferred vertical, min width 150
-            label_sp = QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Policy.Fixed,
-                QtWidgets.QSizePolicy.Policy.Preferred,
-            )
-            label_sp.setHorizontalStretch(0)
-            label_sp.setVerticalStretch(0)
-            label.setSizePolicy(label_sp)
-            label.setMinimumSize(QtCore.QSize(150, 0))
+            for prop_key, prop_value in properties.items():
+                label = QtWidgets.QLabel(prop_value["label"])
+                label.setSizePolicy(label_sp)
+                label.setMinimumWidth(150)
+                label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+                match prop_value["data_type"]:
+                    case "VARCHAR":
+                        field = QtWidgets.QLineEdit()
+                        field.setSizePolicy(field_sp)
+                        field.setObjectName(prop_key)
+                    case "BOOLEAN":
+                        field = QtWidgets.QComboBox()
+                        field.setSizePolicy(field_sp)
+                        field.setObjectName(prop_key)
+                    case "REAL":
+                        field = QtWidgets.QDoubleSpinBox()
+                        field.setSizePolicy(field_sp)
+                        field.setObjectName(prop_key)
+                    case "INTEGER":
+                        field = QtWidgets.QSpinBox()
+                        field.setSizePolicy(field_sp)
+                        field.setObjectName(prop_key)
+                    case "CONTROLLEDVOCABULARY":
+                        field = QtWidgets.QComboBox()
+                        field.setSizePolicy(field_sp)
+                        field.setObjectName(prop_key)
+                        vocab_terms = prop_value["vocab_terms"]
+                        for term in vocab_terms:
+                            field.addItem(term["label"], term["code"])
+                    case _:
+                        field = QtWidgets.QLineEdit()
+                        field.setSizePolicy(field_sp)
+                        field.setObjectName(prop_key)
+                field.setFixedWidth(200)
+                layout.addRow(label, field)
 
-            # Match existing field style: MinimumExpanding horizontal, Fixed vertical
-            field_sp = QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-                QtWidgets.QSizePolicy.Policy.Fixed,
-            )
-            field_sp.setHorizontalStretch(0)
-            field_sp.setVerticalStretch(0)
-            line_edit.setSizePolicy(field_sp)
-
-            # Ensure correct placement in a QFormLayout (label left, field right)
-            if hasattr(layout, "addRow"):
-                # Ensure fields can grow horizontally similar to other form sections
-                if hasattr(layout, "setFieldGrowthPolicy"):
-                    layout.setFieldGrowthPolicy(
-                        QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
-                    )
-                layout.addRow(label, line_edit)
-            else:
-                # Fallback: try to add sequentially if it's not a form layout
-                # (keeps compatibility if the UI changes layout type)
-                layout.addWidget(label)
-                layout.addWidget(line_edit)
+            # # Ensure correct placement in a QFormLayout (label left, field right)
+            # if hasattr(layout, "addRow"):
+            #     # Ensure fields can grow horizontally similar to other form sections
+            #     if hasattr(layout, "setFieldGrowthPolicy"):
+            #         layout.setFieldGrowthPolicy(
+            #             QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
+            #         )
+            #     layout.addRow(label, line_edit)
+            # else:
+            #     # Fallback: try to add sequentially if it's not a form layout
+            #     # (keeps compatibility if the UI changes layout type)
+            #     layout.addWidget(label)
+            #     layout.addWidget(line_edit)
 
 
 if __name__ == "__main__":

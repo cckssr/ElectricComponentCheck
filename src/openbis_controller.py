@@ -30,13 +30,16 @@ class OpenBISController(QObject):
     """
 
     # Qt Signals
-    connection_established = Signal(str)  # Session info
+    connection_established = Signal(str)  # Session info (connection status only)
     disconnected = Signal()
     object_found = Signal(dict)  # Object data
     object_not_found = Signal(str)  # Object code
     properties_loaded = Signal(dict)  # Properties dictionary
     error_occurred = Signal(str)  # Error message
-    status_changed = Signal(str)  # Status message
+    # Transiente Statusmeldungen (nur für Statusbar): message, level(info|success|warning|error), duration(ms)
+    status_message = Signal(str, str, int)
+    # Verbindungsspezifischer Status (nur für UI-Label): z.B. "Verbunden als ...", "Verbindung getrennt"
+    status_changed = Signal(str)
 
     def __init__(
         self,
@@ -83,7 +86,7 @@ class OpenBISController(QObject):
         """
         try:
             self._log(f"Verbinde mit {self.server_url}...")
-            self.status_changed.emit(f"Verbinde mit OpenBIS...")
+            self.status_message.emit("Verbinde mit OpenBIS...", "info", 2000)
 
             self.openbis.set_token(session_token)
             session_info = self.openbis.get_session_info()
@@ -98,7 +101,10 @@ class OpenBISController(QObject):
             info_str = f"Verbunden als {session_info.data.get('userName', 'Unbekannt')}"
             self._log(info_str)
             self.connection_established.emit(info_str)
+            # Verbindungsetikett aktualisieren
             self.status_changed.emit(info_str)
+            # Zusätzlich transiente Erfolgsmeldung
+            self.status_message.emit("OpenBIS-Verbindung hergestellt", "success", 3000)
 
             return True
 
@@ -112,22 +118,28 @@ class OpenBISController(QObject):
 
             # Qt Signal
             self.error_occurred.emit(error_msg)
-            self.status_changed.emit("Verbindung fehlgeschlagen")
+            # Transiente Fehlermeldung in Statusbar
+            self.status_message.emit(error_msg, "error", 6000)
+            # Verbindungsetikett auf nicht-verbunden setzen
+            self.status_changed.emit("Nicht verbunden")
 
             return False
 
     def disconnect_openbis(self) -> None:
         """Trennt die Verbindung zu OpenBIS."""
         if self._connected:
-            try:
-                self.openbis.logout()
-            except Exception as e:
-                self._log(f"Fehler beim Trennen: {e}")
-            finally:
-                self._connected = False
-                self._log("Verbindung getrennt")
-                self.disconnected.emit()
-                self.status_changed.emit("Verbindung getrennt")
+            # try:
+            #     self.openbis.logout()
+            # except Exception as e:
+            #     self._log(f"Fehler beim Trennen: {e}")
+            # finally:
+            self._connected = False
+            self._log("Verbindung getrennt")
+            self.disconnected.emit()
+            # Verbindungsetikett
+            self.status_changed.emit("Verbindung getrennt")
+            # Transiente Info
+            self.status_message.emit("OpenBIS-Verbindung getrennt", "info", 2000)
 
     def is_connected(self) -> bool:
         """Prüft, ob mit OpenBIS verbunden."""
@@ -152,7 +164,7 @@ class OpenBISController(QObject):
 
         try:
             self._log(f"Suche Objekt: {code}")
-            self.status_changed.emit(f"Suche Objekt {code}...")
+            self.status_message.emit(f"Suche Objekt {code}...", "info", 2000)
 
             results = self.openbis.get_objects(code=code)
 
@@ -160,13 +172,14 @@ class OpenBISController(QObject):
                 msg = f"Kein Objekt mit Code {code} gefunden"
                 self._log(msg)
                 self.object_not_found.emit(code)
-                self.status_changed.emit(msg)
+                self.status_message.emit(msg, "warning", 4000)
                 return None
 
             elif len(results) > 1:
                 msg = f"Mehrere Objekte mit Code {code} gefunden. Bitte spezifizieren."
                 self._log(msg)
                 self.error_occurred.emit(msg)
+                self.status_message.emit(msg, "warning", 4000)
                 return None
 
             else:
@@ -190,7 +203,7 @@ class OpenBISController(QObject):
 
                 self._log(f"Objekt gefunden: {code}")
                 self.object_found.emit(obj_data)
-                self.status_changed.emit(f"Objekt {code} gefunden")
+                self.status_message.emit(f"Objekt {code} gefunden", "success", 2500)
 
                 return obj
 
@@ -198,6 +211,7 @@ class OpenBISController(QObject):
             error_msg = f"Fehler bei der Objektsuche: {str(e)}"
             self._log(error_msg)
             self.error_occurred.emit(error_msg)
+            self.status_message.emit(error_msg, "error", 6000)
             return None
 
     def init_properties(
@@ -218,7 +232,9 @@ class OpenBISController(QObject):
 
         try:
             self._log(f"Lade Properties für {object_type}...")
-            self.status_changed.emit(f"Lade Properties für {object_type}...")
+            self.status_message.emit(
+                f"Lade Properties für {object_type}...", "info", 2000
+            )
 
             obj_type = self.openbis.get_object_type(object_type)
             prop_assign = obj_type.get_property_assignments().df
@@ -226,11 +242,15 @@ class OpenBISController(QObject):
 
             properties = {section: [] for section in sections}
             for _, row in prop_assign.iterrows():
-                properties[row["section"]].append(row["propertyType"])
+                properties[row["section"]].append(row["code"])
+
+            properties = self._detail_object_properties(properties)
 
             self._log(f"Properties geladen: {len(properties)} Sections")
             self.properties_loaded.emit(properties)
-            self.status_changed.emit(f"Properties für {object_type} geladen")
+            self.status_message.emit(
+                f"Properties für {object_type} geladen", "success", 2500
+            )
 
             return properties
 
@@ -238,6 +258,7 @@ class OpenBISController(QObject):
             error_msg = f"Fehler beim Initialisieren der Eigenschaften: {str(e)}"
             self._log(error_msg)
             self.error_occurred.emit(error_msg)
+            self.status_message.emit(error_msg, "error", 6000)
             return {}
 
     def get_server_info(self) -> Optional[Dict[str, str]]:
@@ -255,8 +276,29 @@ class OpenBISController(QObject):
             "connected": str(self._connected),
         }
 
-    # Legacy-Property für Rückwärtskompatibilität
-    @property
-    def connected(self) -> bool:
-        """Legacy property für self.connected."""
-        return self._connected
+    def _detail_object_properties(
+        self, props: Dict[str, List[str]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Hilfsmethode zum Detaillieren der Properties eines Objekts."""
+        detailed_props = props.copy()
+        for key in props:
+            key_list = props[key]
+            detailed_props[key] = dict.fromkeys(key_list)
+            for i, o_type in enumerate(key_list):
+                temp_o_type = self.openbis.get_property_type(o_type)
+                temp_dict = {
+                    "label": temp_o_type.label,
+                    "description": temp_o_type.description,
+                    "data_type": temp_o_type.dataType,
+                    "vocabulary": temp_o_type.vocabulary,
+                }
+                if temp_dict["data_type"] == "CONTROLLEDVOCABULARY":
+                    vocab = (
+                        self.openbis.get_vocabulary(temp_dict["vocabulary"])
+                        .get_terms()
+                        .df
+                    )
+                    terms = vocab[["code", "label"]].to_dict("records")
+                    temp_dict["vocab_terms"] = terms
+                detailed_props[key][o_type] = temp_dict
+        return detailed_props
