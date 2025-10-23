@@ -29,6 +29,25 @@ class OpenBISController(QObject):
         status_changed: Wird bei Statusänderungen ausgesendet (str)
     """
 
+    # Constants
+    QT_TRANSLATE_ELEC_TYPE = {  # Openbis type code: qt label
+        "CAPACITOR": "Kondensator",
+        "DIODE": "Diode",
+        "FUSE": "Sicherung",
+        "INDUCTOR": "Induktivität",
+        "OPAMP": "Operationsverstärker",
+        "RESISTOR": "Widerstand",
+        "SWITCH": "Schalter",
+        "TRANSISTOR": "Transistor",
+    }
+    QT_TRANSLATE_ELEC_STATUS = {
+        "DEF": "Defekt",
+        "FUNC": "Funktioniert",
+        "NOCALB": "Unkalibriert",
+        "OK": "Kalibriert",
+        "UNKWN": "Unbekannt",
+    }
+
     # Qt Signals
     connection_established = Signal(str)  # Session info (connection status only)
     disconnected = Signal()
@@ -36,9 +55,11 @@ class OpenBISController(QObject):
     object_not_found = Signal(str)  # Object code
     properties_loaded = Signal(dict)  # Properties dictionary
     error_occurred = Signal(str)  # Error message
-    # Transiente Statusmeldungen (nur für Statusbar): message, level(info|success|warning|error), duration(ms)
+    # Transiente Statusmeldungen (nur für Statusbar):
+    #   message, level(info|success|warning|error), duration(ms)
     status_message = Signal(str, str, int)
-    # Verbindungsspezifischer Status (nur für UI-Label): z.B. "Verbunden als ...", "Verbindung getrennt"
+    # Verbindungsspezifischer Status (nur für UI-Label):
+    #   z.B. "Verbunden als ...", "Verbindung getrennt"
     status_changed = Signal(str)
 
     def __init__(
@@ -193,13 +214,28 @@ class OpenBISController(QObject):
                 # Objekt gefunden - als Dictionary für Signal
                 obj_data = {
                     "code": obj.code,
-                    "type": obj.type.code,
+                    "type": "",
+                    "qt_type": "Unbekannt",
+                    "function": "UNKWN",
+                    "qt_function": "Unbekannt",
                     "permId": obj.permId,
-                    "identifier": (
-                        obj.identifier if hasattr(obj, "identifier") else None
+                    "properties": (
+                        obj.props.all_nonempty() if hasattr(obj, "props") else {}
                     ),
-                    "properties": obj.props.all() if hasattr(obj, "props") else {},
                 }
+                if obj_data["properties"]:
+                    obj_data["type"] = obj_data["properties"].get(
+                        "equipment.electrical_type", "UNKWN"
+                    )
+                    obj_data["qt_type"] = self.QT_TRANSLATE_ELEC_TYPE.get(
+                        obj_data["type"], "Unbekannt"
+                    )
+                    obj_data["function"] = obj_data["properties"].get(
+                        "equipment.status", "UNKWN"
+                    )
+                    obj_data["qt_function"] = self.QT_TRANSLATE_ELEC_STATUS.get(
+                        obj_data["function"], "Unbekannt"
+                    )
 
                 self._log(f"Objekt gefunden: {code}")
                 self.object_found.emit(obj_data)

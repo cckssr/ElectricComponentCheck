@@ -258,23 +258,28 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addLayout(self.general, 2, 1, 1, 2)
 
-        self.gridLayout_2 = QGridLayout()
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.gridLayout_2.setContentsMargins(-1, -1, -1, 50)
+        self.special = QGridLayout()
+        self.special.setObjectName(u"special")
+        self.special.setContentsMargins(-1, -1, -1, 50)
         self.label_8 = QLabel(self.centralwidget)
         self.label_8.setObjectName(u"label_8")
         self.label_8.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.gridLayout_2.addWidget(self.label_8, 0, 1, 1, 1)
+        self.special.addWidget(self.label_8, 0, 1, 1, 1)
 
         self.label_7 = QLabel(self.centralwidget)
         self.label_7.setObjectName(u"label_7")
         self.label_7.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.gridLayout_2.addWidget(self.label_7, 0, 0, 1, 1)
+        self.special.addWidget(self.label_7, 0, 0, 1, 1)
 
         self.specific = QToolBox(self.centralwidget)
         self.specific.setObjectName(u"specific")
+        sizePolicy4 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
+        sizePolicy4.setHorizontalStretch(0)
+        sizePolicy4.setVerticalStretch(0)
+        sizePolicy4.setHeightForWidth(self.specific.sizePolicy().hasHeightForWidth())
+        self.specific.setSizePolicy(sizePolicy4)
         self.specific.setMinimumSize(QSize(450, 0))
         self.resistor = QWidget()
         self.resistor.setObjectName(u"resistor")
@@ -313,17 +318,17 @@ class Ui_MainWindow(object):
         self.formLayout_11.setObjectName(u"formLayout_11")
         self.specific.addItem(self.fuse, u"Sicherung")
 
-        self.gridLayout_2.addWidget(self.specific, 1, 0, 1, 1)
+        self.special.addWidget(self.specific, 1, 0, 1, 1)
 
         self.plot_widget = QWidget(self.centralwidget)
         self.plot_widget.setObjectName(u"plot_widget")
         self.plot_widget.setMinimumSize(QSize(100, 10))
 
-        self.gridLayout_2.addWidget(self.plot_widget, 1, 1, 1, 1)
+        self.special.addWidget(self.plot_widget, 1, 1, 1, 1)
 
-        self.gridLayout_2.setColumnStretch(1, 1)
+        self.special.setColumnStretch(1, 1)
 
-        self.gridLayout.addLayout(self.gridLayout_2, 4, 1, 1, 2)
+        self.gridLayout.addLayout(self.special, 4, 1, 1, 2)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)

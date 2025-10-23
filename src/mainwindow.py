@@ -195,10 +195,14 @@ class MainWindow(QMainWindow):
         """OpenBIS-Objekt gefunden."""
         print(f"Objekt gefunden: {obj_data['code']}")
         # Hier können Objektdaten in UI geladen werden
+        self.ui.object_status.setCurrentText("Bekannt")
+        self._fill_object_data(obj_data)
 
     def _on_openbis_object_not_found(self, code: str):
         """OpenBIS-Objekt nicht gefunden."""
-        QMessageBox.information(self, "Suche", f"Objekt '{code}' nicht gefunden")
+        error_msg = f"Objekt '{code}' nicht gefunden"
+        self._show_status(error_msg, level="warning", duration_ms=6000)
+        self.ui.object_status.setCurrentText("Neues Objekt")
 
     def _on_openbis_properties_loaded(self, properties: dict):
         """OpenBIS-Properties geladen."""
@@ -230,6 +234,37 @@ class MainWindow(QMainWindow):
 
         self.openbis_controller.search_object(barcode)
         # Transiente Meldung erfolgt durch Controller
+
+    def _fill_object_data(self, obj_data: dict):
+        """Füllt UI-Felder mit den Daten des gefundenen Objekts."""
+        # Grundlegende Felder
+        self.ui.type.setCurrentText(obj_data.get("qt_type", "Unbekannt"))
+        self.ui.manufacturer.setText(obj_data.get("manufacturer", ""))
+        self.ui.status.setCurrentText(obj_data.get("qt_function", "Unbekannt"))
+        self.ui.orig_name.setText(
+            obj_data["properties"].get("equipment.alternativ_name", "")
+        )
+
+        # Spezifische Properties
+        properties = obj_data.get("properties", {})
+        for prop_name, prop_value in properties.items():
+            field = self.findChild(QtWidgets.QWidget, prop_name.upper())
+            if field is None:
+                continue
+            match field.__class__.__name__:
+                case "QLineEdit":
+                    field.setText(str(prop_value) if prop_value is not None else "")
+                case "QComboBox":
+                    index = field.findData(prop_value)
+                    if index != -1:
+                        field.setCurrentIndex(index)
+                case "QDoubleSpinBox" | "QSpinBox":
+                    if prop_value is not None:
+                        field.setValue(float(prop_value))
+                case _:
+                    print(
+                        f"Unbekanntes Feldtyp für {prop_name}: {field.__class__.__name__}"
+                    )
 
     # ========================================================================
     # Statusbar Meldungen (transient)
@@ -329,6 +364,26 @@ class MainWindow(QMainWindow):
             if layout is None:
                 continue
 
+            # Clear existing children of the layout if any
+            if layout.count() > 0:
+
+                def _clear_layout(l: QtWidgets.QLayout):
+                    while l.count():
+                        item = l.takeAt(0)
+                        if item is None:
+                            continue
+                        w = item.widget()
+                        if w is not None:
+                            w.setParent(None)
+                            w.deleteLater()
+                            continue
+                        sub = item.layout()
+                        if sub is not None:
+                            _clear_layout(sub)
+                        # spacer items are ignored
+
+                _clear_layout(layout)
+
             properties = o_props.get(value, {})
             if not properties:
                 continue
@@ -368,20 +423,21 @@ class MainWindow(QMainWindow):
                         field.setObjectName(prop_key)
                 field.setFixedWidth(200)
                 layout.addRow(label, field)
-
-            # # Ensure correct placement in a QFormLayout (label left, field right)
-            # if hasattr(layout, "addRow"):
-            #     # Ensure fields can grow horizontally similar to other form sections
-            #     if hasattr(layout, "setFieldGrowthPolicy"):
-            #         layout.setFieldGrowthPolicy(
-            #             QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
-            #         )
-            #     layout.addRow(label, line_edit)
-            # else:
-            #     # Fallback: try to add sequentially if it's not a form layout
-            #     # (keeps compatibility if the UI changes layout type)
-            #     layout.addWidget(label)
-            #     layout.addWidget(line_edit)
+            print(f"Section '{value}' mit {len(properties)} Properties initialisiert.")
+        print("Alle Sections initialisiert.")
+        # # Ensure correct placement in a QFormLayout (label left, field right)
+        # if hasattr(layout, "addRow"):
+        #     # Ensure fields can grow horizontally similar to other form sections
+        #     if hasattr(layout, "setFieldGrowthPolicy"):
+        #         layout.setFieldGrowthPolicy(
+        #             QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
+        #         )
+        #     layout.addRow(label, line_edit)
+        # else:
+        #     # Fallback: try to add sequentially if it's not a form layout
+        #     # (keeps compatibility if the UI changes layout type)
+        #     layout.addWidget(label)
+        #     layout.addWidget(line_edit)
 
 
 if __name__ == "__main__":
