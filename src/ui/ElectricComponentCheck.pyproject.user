@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 14.0.2, 2025-10-17T15:41:31. -->
+<!-- Written by QtCreator 14.0.2, 2025-10-21T16:51:03. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -199,7 +199,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">../mainwindow.py</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/src/mainwindow.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/src/mainwindow.py</value>
-    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
     <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/Library/Mobile Documents/com~apple~CloudDocs/GIT/ElectricComponentCheck/src/mainwindow.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>

@@ -1,50 +1,236 @@
 # This Python file uses the following encoding: utf-8
 import sys
-import os
+import re
+from typing import Optional
+from pathlib import Path
+from pyvisa import ResourceManager
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PySide6 import QtWidgets, QtCore
 
-# Important:
-# You need to run the following command to generate the ui_form.py file
-#     pyside6-uic form.ui -o ui_form.py, or
-#     pyside2-uic form.ui -o ui_form.py
-from ui_form import Ui_MainWindow
-
+from ui.ui_form import Ui_MainWindow
 from openbis_controller import OpenBISController
+from lcr_controller import LCRController
+
+SERVER_URL = "https://openbis.physik.tu-berlin.de"
 
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.openbis_controller: Optional[OpenBISController] = None
+        self.lcr_controller: Optional[LCRController] = None
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        # Start periodic UI updates (demo progress)
-        self._start_progress_timer()
-        self.openbis = self._init_openbis()
-        self.init_sections()
+        self._init_connections()
 
-    def _init_openbis(self):
-        SERVER_URL = "https://openbis.physik.tu-berlin.de"
-        session_token = self.ui.session_token.text().strip()
-        session_token = (
-            "cedric.kessler-251012143258126xE490F2FA3DC13C9A12B039FDAC8584CD"
+    def _init_connections(self):
+        """Initialisiert UI-Verbindungen und Controller."""
+        # OpenBIS-Verbindungen
+        self.ui.session_token.returnPressed.connect(self._on_st_changed)
+        self.ui.openbis_progress.setText("Warten auf Session Token...")
+
+        # LCR-Verbindungen
+        self.ui.lcr_refresh_resource.clicked.connect(self._refresh_instruments)
+        self.ui.lcr_resource.currentIndexChanged.connect(self._on_resource_changed)
+
+        # Initiale Geräte-Suche
+        self._refresh_instruments()
+
+    # ========================================================================
+    # LCR-Controller Methoden
+    # ========================================================================
+
+    def _refresh_instruments(self):
+        """Sucht nach verfügbaren LCR-Geräten."""
+        rm = ResourceManager()
+        instruments = rm.list_resources()
+        self.ui.lcr_resource.clear()
+        self.ui.lcr_resource.addItems(instruments)
+        self.ui.lcr_resource.setCurrentIndex(-1)
+        self.ui.lcr_progress.setText("Warten auf Verbindung...")
+
+        # Automatisch erstes USB-Gerät auswählen
+        for inst in instruments:
+            if inst.startswith("USB"):
+                self.ui.lcr_resource.setCurrentText(inst)
+                break
+
+    def _on_resource_changed(self):
+        """Wird aufgerufen, wenn ein LCR-Gerät ausgewählt wurde."""
+        resource_name = self.ui.lcr_resource.currentText()
+        if not resource_name:
+            return
+
+        # Trenne alte Verbindung falls vorhanden
+        if self.lcr_controller and self.lcr_controller.is_connected():
+            self.lcr_controller.disconnect_device()
+
+        # Erstelle neuen Controller
+        self.lcr_controller = LCRController(
+            spec_path=Path(__file__).parent / "vcr_uncertainties.json",
+            check_interval_ms=5000,
+            debug=True,
         )
-        try:
-            controller = OpenBISController(SERVER_URL, session_token)
-            self.ui.openbis_progress_text.setText("Erfolgreich mit OpenBIS verbunden")
-            response = controller
-        except ValueError as e:
-            QMessageBox.critical(
-                self,
-                "Fehler",
-                f"Verbindung zu OpenBIS fehlgeschlagen: {e}",
-            )
-            response = None
 
-        self._progress_timer.stop()
-        self.ui.openbis_progress.setValue(100)
-        return response
+        # Verbinde Signale
+        self._connect_lcr_signals()
+
+        # Verbinde mit Gerät (Standard: Kondensator)
+        self.ui.lcr_progress.setText(f"Verbinde mit {resource_name}...")
+        self.lcr_controller.connect_device(resource_name, "capacitor")
+
+    def _connect_lcr_signals(self):
+        """Verbindet LCR-Controller-Signale mit UI-Updates."""
+        if not self.lcr_controller:
+            return
+
+        self.lcr_controller.connected.connect(self._on_lcr_connected)
+        self.lcr_controller.disconnected.connect(self._on_lcr_disconnected)
+        self.lcr_controller.connection_lost.connect(self._on_lcr_connection_lost)
+        self.lcr_controller.measurement_ready.connect(self._on_lcr_measurement)
+        self.lcr_controller.error_occurred.connect(self._on_lcr_error)
+        self.lcr_controller.status_changed.connect(self._on_lcr_status)
+
+    def _on_lcr_connected(self, device_id: str):
+        """LCR-Gerät erfolgreich verbunden."""
+        self.ui.lcr_progress.setText(f"Verbunden: {device_id}")
+        self.ui.lcr_progress.setStyleSheet("color: green;")
+
+    def _on_lcr_disconnected(self):
+        """LCR-Gerät getrennt."""
+        self.ui.lcr_progress.setText("Verbindung getrennt")
+        self.ui.lcr_progress.setStyleSheet("")
+
+    def _on_lcr_connection_lost(self):
+        """LCR-Verbindung verloren."""
+        self.ui.lcr_progress.setText("Verbindung verloren!")
+        self.ui.lcr_progress.setStyleSheet("color: red;")
+        QMessageBox.warning(
+            self, "Verbindungsfehler", "Verbindung zum LCR-Gerät verloren!"
+        )
+
+    def _on_lcr_measurement(self, data: dict):
+        """Neue LCR-Messdaten empfangen."""
+        # Hier können Messdaten verarbeitet werden
+        print(f"Messung: {data['primary_name']}={data['primary_value']}")
+
+    def _on_lcr_error(self, error_msg: str):
+        """LCR-Fehler aufgetreten."""
+        self.ui.lcr_progress.setText(f"Fehler: {error_msg}")
+        self.ui.lcr_progress.setStyleSheet("color: red;")
+
+    def _on_lcr_status(self, status: str):
+        """LCR-Status geändert."""
+        self.ui.lcr_progress.setText(status)
+
+    # ========================================================================
+    # OpenBIS-Controller Methoden
+    # ========================================================================
+
+    def _on_st_changed(self):
+        """Session-Token wurde eingegeben."""
+        session_token = self.ui.session_token.text().strip()
+        if not session_token:
+            return
+
+        if not re.match(r".*?-\d{10}[\d\w]{38}", session_token):
+            self.ui.openbis_progress.setText("Ungültiges Token-Format")
+            self.ui.openbis_progress.setStyleSheet("color: red;")
+            return
+
+        # Erstelle OpenBIS-Controller
+        self.ui.openbis_progress.setText("Verbindung zu OpenBIS wird hergestellt...")
+        self.openbis_controller = OpenBISController(server_url=SERVER_URL, debug=True)
+
+        # Verbinde Signale
+        self._connect_openbis_signals()
+
+        # Verbinde mit Token
+        self.openbis_controller.connect_with_token(session_token)
+
+    def _connect_openbis_signals(self):
+        """Verbindet OpenBIS-Controller-Signale mit UI-Updates."""
+        if not self.openbis_controller:
+            return
+
+        self.openbis_controller.connection_established.connect(
+            self._on_openbis_connected
+        )
+        self.openbis_controller.disconnected.connect(self._on_openbis_disconnected)
+        self.openbis_controller.object_found.connect(self._on_openbis_object_found)
+        self.openbis_controller.object_not_found.connect(
+            self._on_openbis_object_not_found
+        )
+        self.openbis_controller.properties_loaded.connect(
+            self._on_openbis_properties_loaded
+        )
+        self.openbis_controller.error_occurred.connect(self._on_openbis_error)
+        self.openbis_controller.status_changed.connect(self._on_openbis_status)
+
+    def _on_openbis_connected(self, info: str):
+        """OpenBIS erfolgreich verbunden."""
+        self.ui.openbis_progress.setText(info)
+        self.ui.openbis_progress.setStyleSheet("color: green;")
+        self.ui.barcode.setEnabled(True)
+
+    def _on_openbis_disconnected(self):
+        """OpenBIS getrennt."""
+        self.ui.openbis_progress.setText("Verbindung getrennt")
+        self.ui.openbis_progress.setStyleSheet("")
+        self.ui.barcode.setEnabled(False)
+
+    def _on_openbis_object_found(self, obj_data: dict):
+        """OpenBIS-Objekt gefunden."""
+        print(f"Objekt gefunden: {obj_data['code']}")
+        # Hier können Objektdaten in UI geladen werden
+
+    def _on_openbis_object_not_found(self, code: str):
+        """OpenBIS-Objekt nicht gefunden."""
+        QMessageBox.information(self, "Suche", f"Objekt '{code}' nicht gefunden")
+
+    def _on_openbis_properties_loaded(self, properties: dict):
+        """OpenBIS-Properties geladen."""
+        print(f"Properties geladen: {len(properties)} Sections")
+        # Hier können Properties in UI geladen werden
+
+    def _on_openbis_error(self, error_msg: str):
+        """OpenBIS-Fehler aufgetreten."""
+        self.ui.openbis_progress.setText(f"Fehler: {error_msg}")
+        self.ui.openbis_progress.setStyleSheet("color: red;")
+
+    def _on_openbis_status(self, status: str):
+        """OpenBIS-Status geändert."""
+        self.ui.openbis_progress.setText(status)
+
+    # ========================================================================
+    # Legacy-Methode (für Rückwärtskompatibilität)
+    # ========================================================================
+
+    def openbis_status_callback(self, message: str, color: Optional[str] = None):
+        """Legacy callback für OpenBIS-Status (wird nicht mehr benötigt)."""
+        self.ui.openbis_progress.setText(message)
+        if not color:
+            color = self.ui.centralwidget.palette().text().color().name()
+        self.ui.openbis_progress.setStyleSheet(f"color: {color};")
+
+    # ========================================================================
+    # Cleanup
+    # ========================================================================
+
+    def closeEvent(self, event):
+        """Beim Schließen des Fensters Controller trennen."""
+        if self.lcr_controller and self.lcr_controller.is_connected():
+            self.lcr_controller.disconnect_device()
+
+        if self.openbis_controller and self.openbis_controller.is_connected():
+            self.openbis_controller.disconnect_openbis()
+
+        event.accept()
+
+    # ========================================================================
+    # Legacy-Methode (für bestehenden Code)
+    # ========================================================================
 
     def init_sections(self):
         sections = {
@@ -99,22 +285,6 @@ class MainWindow(QMainWindow):
                 # (keeps compatibility if the UI changes layout type)
                 layout.addWidget(label)
                 layout.addWidget(line_edit)
-
-    def _start_progress_timer(self):
-        self._progress_timer = QtCore.QTimer(self)
-        self._progress_timer.setInterval(200)  # 200 ms
-        self._progress_timer.timeout.connect(self._tick_progress)
-        self._progress_timer.start()
-
-    def _tick_progress(self):
-        bar = self.ui.openbis_progress
-        current = bar.value()
-        maximum = bar.maximum() if bar.maximum() > 0 else 100
-        step = 10
-        next_val = current + step
-        if next_val > maximum:
-            next_val = 0
-        bar.setValue(next_val)
 
 
 if __name__ == "__main__":

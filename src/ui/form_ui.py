@@ -17,65 +17,30 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QFrame,
     QGridLayout, QLabel, QLineEdit, QMainWindow,
-    QMenuBar, QProgressBar, QSizePolicy, QStatusBar,
-    QToolBox, QWidget)
+    QMenuBar, QPushButton, QSizePolicy, QStatusBar,
+    QToolBox, QToolButton, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(997, 873)
+        MainWindow.resize(812, 738)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.specific = QToolBox(self.centralwidget)
-        self.specific.setObjectName(u"specific")
-        self.resistor = QWidget()
-        self.resistor.setObjectName(u"resistor")
-        self.resistor.setGeometry(QRect(0, 0, 482, 391))
-        self.formLayout = QFormLayout(self.resistor)
-        self.formLayout.setObjectName(u"formLayout")
-        self.specific.addItem(self.resistor, u"Widerstand")
-        self.capacitor = QWidget()
-        self.capacitor.setObjectName(u"capacitor")
-        self.capacitor.setGeometry(QRect(0, 0, 482, 391))
-        self.formLayout_7 = QFormLayout(self.capacitor)
-        self.formLayout_7.setObjectName(u"formLayout_7")
-        self.specific.addItem(self.capacitor, u"Kondensator")
-        self.inductor = QWidget()
-        self.inductor.setObjectName(u"inductor")
-        self.inductor.setGeometry(QRect(0, 0, 482, 391))
-        self.formLayout_8 = QFormLayout(self.inductor)
-        self.formLayout_8.setObjectName(u"formLayout_8")
-        self.specific.addItem(self.inductor, u"Induktivit\u00e4t")
-        self.transistor = QWidget()
-        self.transistor.setObjectName(u"transistor")
-        self.transistor.setGeometry(QRect(0, 0, 482, 391))
-        self.formLayout_9 = QFormLayout(self.transistor)
-        self.formLayout_9.setObjectName(u"formLayout_9")
-        self.specific.addItem(self.transistor, u"Transistor")
-        self.switch_2 = QWidget()
-        self.switch_2.setObjectName(u"switch_2")
-        self.switch_2.setGeometry(QRect(0, 0, 482, 391))
-        self.formLayout_10 = QFormLayout(self.switch_2)
-        self.formLayout_10.setObjectName(u"formLayout_10")
-        self.specific.addItem(self.switch_2, u"Schalter")
-        self.fuse = QWidget()
-        self.fuse.setObjectName(u"fuse")
-        self.fuse.setGeometry(QRect(0, 0, 482, 391))
-        self.formLayout_11 = QFormLayout(self.fuse)
-        self.formLayout_11.setObjectName(u"formLayout_11")
-        self.specific.addItem(self.fuse, u"Sicherung")
-
-        self.gridLayout.addWidget(self.specific, 4, 1, 1, 1)
-
         self.line_2 = QFrame(self.centralwidget)
         self.line_2.setObjectName(u"line_2")
         self.line_2.setFrameShape(QFrame.Shape.HLine)
         self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout.addWidget(self.line_2, 3, 1, 1, 2)
+
+        self.plot_widget = QWidget(self.centralwidget)
+        self.plot_widget.setObjectName(u"plot_widget")
+        self.plot_widget.setMinimumSize(QSize(100, 0))
+
+        self.gridLayout.addWidget(self.plot_widget, 5, 2, 1, 1)
 
         self.general = QGridLayout()
         self.general.setObjectName(u"general")
@@ -97,6 +62,7 @@ class Ui_MainWindow(object):
 
         self.barcode = QLineEdit(self.centralwidget)
         self.barcode.setObjectName(u"barcode")
+        self.barcode.setEnabled(False)
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
@@ -122,6 +88,7 @@ class Ui_MainWindow(object):
 
         self.orig_name = QLineEdit(self.centralwidget)
         self.orig_name.setObjectName(u"orig_name")
+        self.orig_name.setEnabled(False)
         sizePolicy2 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Minimum)
         sizePolicy2.setHorizontalStretch(0)
         sizePolicy2.setVerticalStretch(0)
@@ -147,6 +114,7 @@ class Ui_MainWindow(object):
 
         self.manufacturer = QLineEdit(self.centralwidget)
         self.manufacturer.setObjectName(u"manufacturer")
+        self.manufacturer.setEnabled(False)
         sizePolicy1.setHeightForWidth(self.manufacturer.sizePolicy().hasHeightForWidth())
         self.manufacturer.setSizePolicy(sizePolicy1)
 
@@ -184,6 +152,7 @@ class Ui_MainWindow(object):
         self.type.addItem("")
         self.type.addItem("")
         self.type.setObjectName(u"type")
+        self.type.setEnabled(False)
         sizePolicy1.setHeightForWidth(self.type.sizePolicy().hasHeightForWidth())
         self.type.setSizePolicy(sizePolicy1)
 
@@ -212,6 +181,7 @@ class Ui_MainWindow(object):
         self.status.addItem("")
         self.status.addItem("")
         self.status.setObjectName(u"status")
+        self.status.setEnabled(False)
         sizePolicy1.setHeightForWidth(self.status.sizePolicy().hasHeightForWidth())
         self.status.setSizePolicy(sizePolicy1)
 
@@ -230,53 +200,129 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addWidget(self.line, 1, 1, 1, 2)
 
-        self.plot_widget = QWidget(self.centralwidget)
-        self.plot_widget.setObjectName(u"plot_widget")
-        self.plot_widget.setMinimumSize(QSize(100, 0))
+        self.specific = QToolBox(self.centralwidget)
+        self.specific.setObjectName(u"specific")
+        self.resistor = QWidget()
+        self.resistor.setObjectName(u"resistor")
+        self.resistor.setGeometry(QRect(0, 0, 389, 201))
+        self.formLayout = QFormLayout(self.resistor)
+        self.formLayout.setObjectName(u"formLayout")
+        self.specific.addItem(self.resistor, u"Widerstand")
+        self.capacitor = QWidget()
+        self.capacitor.setObjectName(u"capacitor")
+        self.capacitor.setGeometry(QRect(0, 0, 389, 201))
+        self.formLayout_7 = QFormLayout(self.capacitor)
+        self.formLayout_7.setObjectName(u"formLayout_7")
+        self.specific.addItem(self.capacitor, u"Kondensator")
+        self.inductor = QWidget()
+        self.inductor.setObjectName(u"inductor")
+        self.inductor.setGeometry(QRect(0, 0, 389, 201))
+        self.formLayout_8 = QFormLayout(self.inductor)
+        self.formLayout_8.setObjectName(u"formLayout_8")
+        self.specific.addItem(self.inductor, u"Induktivit\u00e4t")
+        self.transistor = QWidget()
+        self.transistor.setObjectName(u"transistor")
+        self.transistor.setGeometry(QRect(0, 0, 389, 201))
+        self.formLayout_9 = QFormLayout(self.transistor)
+        self.formLayout_9.setObjectName(u"formLayout_9")
+        self.specific.addItem(self.transistor, u"Transistor")
+        self.switch_2 = QWidget()
+        self.switch_2.setObjectName(u"switch_2")
+        self.switch_2.setGeometry(QRect(0, 0, 389, 201))
+        self.formLayout_10 = QFormLayout(self.switch_2)
+        self.formLayout_10.setObjectName(u"formLayout_10")
+        self.specific.addItem(self.switch_2, u"Schalter")
+        self.fuse = QWidget()
+        self.fuse.setObjectName(u"fuse")
+        self.fuse.setGeometry(QRect(0, 0, 389, 201))
+        self.formLayout_11 = QFormLayout(self.fuse)
+        self.formLayout_11.setObjectName(u"formLayout_11")
+        self.specific.addItem(self.fuse, u"Sicherung")
 
-        self.gridLayout.addWidget(self.plot_widget, 4, 2, 1, 1)
+        self.gridLayout.addWidget(self.specific, 5, 1, 1, 1)
 
         self.openbis = QGridLayout()
         self.openbis.setObjectName(u"openbis")
         self.openbis.setContentsMargins(-1, -1, -1, 0)
-        self.openbis_progress = QProgressBar(self.centralwidget)
-        self.openbis_progress.setObjectName(u"openbis_progress")
-        self.openbis_progress.setValue(0)
-        self.openbis_progress.setInvertedAppearance(False)
+        self.lcr_progress = QLabel(self.centralwidget)
+        self.lcr_progress.setObjectName(u"lcr_progress")
+        self.lcr_progress.setMinimumSize(QSize(120, 0))
 
-        self.openbis.addWidget(self.openbis_progress, 0, 2, 1, 1)
+        self.openbis.addWidget(self.lcr_progress, 1, 3, 1, 1)
 
-        self.openbis_progress_text = QLabel(self.centralwidget)
-        self.openbis_progress_text.setObjectName(u"openbis_progress_text")
+        self.lcr_connect = QPushButton(self.centralwidget)
+        self.lcr_connect.setObjectName(u"lcr_connect")
+        self.lcr_connect.setEnabled(False)
 
-        self.openbis.addWidget(self.openbis_progress_text, 1, 2, 1, 1)
+        self.openbis.addWidget(self.lcr_connect, 1, 4, 1, 1)
+
+        self.label_6 = QLabel(self.centralwidget)
+        self.label_6.setObjectName(u"label_6")
+
+        self.openbis.addWidget(self.label_6, 0, 0, 1, 1)
+
+        self.openbis_save = QPushButton(self.centralwidget)
+        self.openbis_save.setObjectName(u"openbis_save")
+        self.openbis_save.setEnabled(False)
+
+        self.openbis.addWidget(self.openbis_save, 0, 4, 1, 1)
+
+        self.lcr_refresh_resource = QToolButton(self.centralwidget)
+        self.lcr_refresh_resource.setObjectName(u"lcr_refresh_resource")
+        icon = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ViewRefresh))
+        self.lcr_refresh_resource.setIcon(icon)
+
+        self.openbis.addWidget(self.lcr_refresh_resource, 1, 2, 1, 1)
 
         self.session_token = QLineEdit(self.centralwidget)
         self.session_token.setObjectName(u"session_token")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         sizePolicy3.setHorizontalStretch(0)
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.session_token.sizePolicy().hasHeightForWidth())
         self.session_token.setSizePolicy(sizePolicy3)
 
-        self.openbis.addWidget(self.session_token, 0, 1, 2, 1)
+        self.openbis.addWidget(self.session_token, 0, 1, 1, 1)
 
-        self.label_6 = QLabel(self.centralwidget)
-        self.label_6.setObjectName(u"label_6")
+        self.label_9 = QLabel(self.centralwidget)
+        self.label_9.setObjectName(u"label_9")
 
-        self.openbis.addWidget(self.label_6, 0, 0, 2, 1)
+        self.openbis.addWidget(self.label_9, 1, 0, 1, 1)
 
-        self.openbis.setColumnStretch(1, 2)
-        self.openbis.setColumnStretch(2, 1)
+        self.openbis_progress = QLabel(self.centralwidget)
+        self.openbis_progress.setObjectName(u"openbis_progress")
+        self.openbis_progress.setMinimumSize(QSize(120, 0))
+
+        self.openbis.addWidget(self.openbis_progress, 0, 3, 1, 1)
+
+        self.lcr_resource = QComboBox(self.centralwidget)
+        self.lcr_resource.setObjectName(u"lcr_resource")
+
+        self.openbis.addWidget(self.lcr_resource, 1, 1, 1, 1)
+
+        self.openbis.setColumnStretch(1, 1)
+        self.openbis.setColumnStretch(3, 1)
 
         self.gridLayout.addLayout(self.openbis, 0, 1, 1, 2)
+
+        self.label_7 = QLabel(self.centralwidget)
+        self.label_7.setObjectName(u"label_7")
+        self.label_7.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.gridLayout.addWidget(self.label_7, 4, 1, 1, 1)
+
+        self.label_8 = QLabel(self.centralwidget)
+        self.label_8.setObjectName(u"label_8")
+        self.label_8.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.gridLayout.addWidget(self.label_8, 4, 2, 1, 1)
 
         self.gridLayout.setColumnStretch(1, 1)
         self.gridLayout.setColumnStretch(2, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 997, 24))
+        self.menubar.setGeometry(QRect(0, 0, 812, 24))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -296,12 +342,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Elektrische Komponentencheck", None))
-        self.specific.setItemText(self.specific.indexOf(self.resistor), QCoreApplication.translate("MainWindow", u"Widerstand", None))
-        self.specific.setItemText(self.specific.indexOf(self.capacitor), QCoreApplication.translate("MainWindow", u"Kondensator", None))
-        self.specific.setItemText(self.specific.indexOf(self.inductor), QCoreApplication.translate("MainWindow", u"Induktivit\u00e4t", None))
-        self.specific.setItemText(self.specific.indexOf(self.transistor), QCoreApplication.translate("MainWindow", u"Transistor", None))
-        self.specific.setItemText(self.specific.indexOf(self.switch_2), QCoreApplication.translate("MainWindow", u"Schalter", None))
-        self.specific.setItemText(self.specific.indexOf(self.fuse), QCoreApplication.translate("MainWindow", u"Sicherung", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Barcode", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Herstellerbezeichnung</p></body></html>", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Hersteller", None))
@@ -325,7 +365,29 @@ class Ui_MainWindow(object):
         self.status.setItemText(4, QCoreApplication.translate("MainWindow", u"Defekt", u"DEF"))
         self.status.setItemText(5, QCoreApplication.translate("MainWindow", u"Archiviert", u"ARCHIVE"))
 
-        self.openbis_progress_text.setText("")
+        self.specific.setItemText(self.specific.indexOf(self.resistor), QCoreApplication.translate("MainWindow", u"Widerstand", None))
+        self.specific.setItemText(self.specific.indexOf(self.capacitor), QCoreApplication.translate("MainWindow", u"Kondensator", None))
+        self.specific.setItemText(self.specific.indexOf(self.inductor), QCoreApplication.translate("MainWindow", u"Induktivit\u00e4t", None))
+        self.specific.setItemText(self.specific.indexOf(self.transistor), QCoreApplication.translate("MainWindow", u"Transistor", None))
+        self.specific.setItemText(self.specific.indexOf(self.switch_2), QCoreApplication.translate("MainWindow", u"Schalter", None))
+        self.specific.setItemText(self.specific.indexOf(self.fuse), QCoreApplication.translate("MainWindow", u"Sicherung", None))
+        self.lcr_progress.setText("")
+#if QT_CONFIG(tooltip)
+        self.lcr_connect.setToolTip(QCoreApplication.translate("MainWindow", u"Verbindet die ausgew\u00e4hlte Ressource (LCR-Meter).", None))
+#endif // QT_CONFIG(tooltip)
+        self.lcr_connect.setText(QCoreApplication.translate("MainWindow", u"Verbinden", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", u"Session Token", None))
+#if QT_CONFIG(tooltip)
+        self.openbis_save.setToolTip(QCoreApplication.translate("MainWindow", u"L\u00e4dt die Neuerungen, \u00c4nderungen, Messungen zu OpenBIS hoch.", None))
+#endif // QT_CONFIG(tooltip)
+        self.openbis_save.setText(QCoreApplication.translate("MainWindow", u"Upload", None))
+#if QT_CONFIG(tooltip)
+        self.lcr_refresh_resource.setToolTip(QCoreApplication.translate("MainWindow", u"Resourcen neu laden", None))
+#endif // QT_CONFIG(tooltip)
+        self.lcr_refresh_resource.setText("")
+        self.label_9.setText(QCoreApplication.translate("MainWindow", u"Auswahl LCR-Meter", None))
+        self.openbis_progress.setText(QCoreApplication.translate("MainWindow", u"Warten auf SessionToken...", None))
+        self.label_7.setText(QCoreApplication.translate("MainWindow", u"OpenBIS Eigenschaften", None))
+        self.label_8.setText(QCoreApplication.translate("MainWindow", u"Messung (LCR)", None))
     # retranslateUi
 

@@ -120,9 +120,12 @@ class SimulationLCR:
 # Device Controller
 # ============================================================================
 
+# HINWEIS: Die LCR500HardwareController-Klasse wurde nach lcr_controller.py
+# ausgelagert. Für die GUI-Integration bitte lcr_controller.LCRController verwenden.
+
 
 class LCR500Controller:
-    """Verwaltet die Kommunikation mit dem LCR500-Gerät."""
+    """Verwaltet die Kommunikation mit dem LCR500-Gerät (mit Simulation-Fallback)."""
 
     SETTLE_TIME = 0.5  # Zeit nach Einstellungsänderung (Sekunden)
     FETCH_RETRIES = 5  # Max. Versuche bei "Data Not Ready!"
