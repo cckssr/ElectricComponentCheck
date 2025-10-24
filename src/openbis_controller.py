@@ -338,3 +338,40 @@ class OpenBISController(QObject):
                     temp_dict["vocab_terms"] = terms
                 detailed_props[key][o_type] = temp_dict
         return detailed_props
+    
+    def update_object(self, obj_code: str, properties: Dict[str, Any]) -> bool:
+        """
+        Aktualisiert die Properties eines Objekts in OpenBIS.
+
+        Args:
+            obj_code: Code des zu aktualisierenden Objekts
+            properties: Dictionary mit den zu aktualisierenden Properties
+
+        Returns:
+            True, wenn die Aktualisierung erfolgreich war, sonst False
+        """
+        if not self._connected:
+            self.error_occurred.emit("Nicht mit OpenBIS verbunden")
+            return False
+
+        try:
+            self._log(f"Update Properties für {obj_code}...")
+            self.status_message.emit(
+                f"Update Properties für {obj_code}...", "info", 2000
+            )
+
+            self.openbis.update_object(obj_code, properties)
+
+            self._log(f"Properties aktualisiert: {len(properties)}")
+            self.status_message.emit(
+                f"Properties für {obj_code} aktualisiert", "success", 2500
+            )
+
+            return True
+
+        except Exception as e:
+            error_msg = f"Fehler beim Aktualisieren der Eigenschaften: {str(e)}"
+            self._log(error_msg)
+            self.error_occurred.emit(error_msg)
+            self.status_message.emit(error_msg, "error", 6000)
+            return False

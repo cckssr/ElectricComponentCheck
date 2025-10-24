@@ -35,8 +35,38 @@ class MainWindow(QMainWindow):
         self.ui.lcr_refresh_resource.clicked.connect(self._refresh_instruments)
         self.ui.lcr_resource.currentIndexChanged.connect(self._on_resource_changed)
 
+        # Type-ComboBox Verbindung
+        self.ui.type.currentIndexChanged.connect(self._on_type_changed)
+
         # Initiale Geräte-Suche
         self._refresh_instruments()
+
+        # Initiale Deaktivierung aller specific-Felder außer der ersten Seite
+        self._initialize_specific_fields()
+
+    def _initialize_specific_fields(self):
+        """
+        Initialisiert die specific-Felder beim Start:
+        - Alle Seiten werden zunächst deaktiviert
+        - Nur die aktuell ausgewählte Seite (basierend auf type) wird aktiviert
+        """
+        # Deaktiviere zunächst alle Seiten
+        pages = [
+            self.ui.resistor,
+            self.ui.capacitor,
+            self.ui.inductor,
+            self.ui.transistor,
+            self.ui.switch_2,
+            self.ui.fuse,
+        ]
+
+        for page in pages:
+            self._set_page_fields_enabled(page, False)
+
+        # Aktiviere nur die Felder der aktuell ausgewählten Seite
+        current_type_index = self.ui.type.currentIndex()
+        if current_type_index >= 0:
+            self._update_specific_fields_enabled(current_type_index)
 
     # ========================================================================
     # LCR-Controller Methoden
@@ -127,6 +157,87 @@ class MainWindow(QMainWindow):
         self.ui.lcr_progress.setText(status)
 
     # ========================================================================
+    # Type-Auswahl und QToolBox Synchronisation
+    # ========================================================================
+
+    def _on_type_changed(self, index: int):
+        """
+        Wird aufgerufen, wenn die Bauteilkategorie geändert wird.
+        Aktiviert die entsprechende Seite in der specific QToolBox.
+
+        Args:
+            index: Index der ausgewählten Kategorie im type ComboBox
+                   0: Widerstand, 1: Kondensator, 2: Induktivität,
+                   3: Transistor, 4: Schalter, 5: Sicherung
+        """
+        if index >= 0:
+            # Die QToolBox-Seiten sind in derselben Reihenfolge wie die Type-Items
+            self.ui.specific.setCurrentIndex(index)
+            self._update_specific_fields_enabled(index)
+            self._log_type_change(index)
+
+    def _log_type_change(self, index: int):
+        """Gibt eine Debug-Meldung für die Typänderung aus."""
+        type_names = [
+            "Widerstand",
+            "Kondensator",
+            "Induktivität",
+            "Transistor",
+            "Schalter",
+            "Sicherung",
+        ]
+        if 0 <= index < len(type_names):
+            print(
+                f"[MainWindow] Kategorie gewechselt zu: {type_names[index]} (Index {index})"
+            )
+
+    def _update_specific_fields_enabled(self, active_index: int):
+        """
+        Aktiviert nur die Felder der aktuell ausgewählten Seite,
+        deaktiviert alle anderen specific properties.
+
+        Args:
+            active_index: Index der aktiven Seite (0-5)
+        """
+        # Liste aller specific-Seiten
+        pages = [
+            self.ui.resistor,
+            self.ui.capacitor,
+            self.ui.inductor,
+            self.ui.transistor,
+            self.ui.switch_2,
+            self.ui.fuse,
+        ]
+
+        for idx, page in enumerate(pages):
+            # Aktiviere nur die Felder der aktiven Seite
+            enabled = idx == active_index
+            self._set_page_fields_enabled(page, enabled)
+
+    def _set_page_fields_enabled(self, page: QtWidgets.QWidget, enabled: bool):
+        """
+        Setzt den Enabled-Status aller Input-Felder einer Seite.
+
+        Args:
+            page: Das QWidget der Seite (z.B. self.ui.resistor)
+            enabled: True um zu aktivieren, False um zu deaktivieren
+        """
+        # Durchsuche alle Kinder-Widgets der Seite
+        for widget in page.findChildren(QtWidgets.QWidget):
+            # Aktiviere/Deaktiviere nur Input-Felder
+            if isinstance(
+                widget,
+                (
+                    QtWidgets.QLineEdit,
+                    QtWidgets.QComboBox,
+                    QtWidgets.QSpinBox,
+                    QtWidgets.QDoubleSpinBox,
+                    QtWidgets.QCheckBox,
+                ),
+            ):
+                widget.setEnabled(enabled)
+
+    # ========================================================================
     # OpenBIS-Controller Methoden
     # ========================================================================
 
@@ -197,12 +308,16 @@ class MainWindow(QMainWindow):
         # Hier können Objektdaten in UI geladen werden
         self.ui.object_status.setCurrentText("Bekannt")
         self._fill_object_data(obj_data)
+        # Nur generelle Felder (außer type) aktivieren, type bleibt deaktiviert
+        self._set_general_fields_enabled(True, enable_type=False)
 
     def _on_openbis_object_not_found(self, code: str):
         """OpenBIS-Objekt nicht gefunden."""
         error_msg = f"Objekt '{code}' nicht gefunden"
         self._show_status(error_msg, level="warning", duration_ms=6000)
         self.ui.object_status.setCurrentText("Neues Objekt")
+        # Alle Felder aktivieren (inkl. type)
+        self._set_general_fields_enabled(True, enable_type=True)
 
     def _on_openbis_properties_loaded(self, properties: dict):
         """OpenBIS-Properties geladen."""
@@ -234,6 +349,32 @@ class MainWindow(QMainWindow):
 
         self.openbis_controller.search_object(barcode)
         # Transiente Meldung erfolgt durch Controller
+
+    def _set_general_fields_enabled(self, enabled: bool, enable_type: bool = True):
+        """
+        Aktiviert/Deaktiviert die generellen Felder.
+
+        Args:
+            enabled: True um Felder zu aktivieren, False um zu deaktivieren
+            enable_type: Wenn True, wird auch das type-Feld aktiviert/deaktiviert
+        """
+        # Generelle Felder (außer barcode und object_status, die immer ihren Status behalten)
+        general_fields = [
+            self.ui.manufacturer,
+            self.ui.orig_name,
+            self.ui.status,
+        ]
+
+        for field in general_fields:
+            field.setEnabled(enabled)
+
+        # Type-Feld separat behandeln
+        if enable_type:
+            self.ui.type.setEnabled(enabled)
+
+    # ========================================================================
+    # Daten-Management
+    # ========================================================================
 
     def _fill_object_data(self, obj_data: dict):
         """Füllt UI-Felder mit den Daten des gefundenen Objekts."""
@@ -339,9 +480,9 @@ class MainWindow(QMainWindow):
         else:
             raise RuntimeError("OpenBIS-Controller ist nicht verbunden.")
 
-        # Match existing label style: Fixed horizontal, Preferred vertical, min width 150
+        # Verwende Minimum SizePolicy für Labels, damit sie sich an Inhalt anpassen
         label_sp = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Minimum,
             QtWidgets.QSizePolicy.Policy.Preferred,
         )
         label_sp.setHorizontalStretch(0)
@@ -354,6 +495,10 @@ class MainWindow(QMainWindow):
         )
         field_sp.setHorizontalStretch(0)
         field_sp.setVerticalStretch(0)
+
+        # Variablen für automatische Breitenberechnung
+        max_label_width = 0
+        font_metrics = QtWidgets.QLabel().fontMetrics()
 
         for key, value in sections.items():
             section = getattr(self.ui, key, None)
@@ -389,10 +534,17 @@ class MainWindow(QMainWindow):
                 continue
 
             for prop_key, prop_value in properties.items():
-                label = QtWidgets.QLabel(prop_value["label"])
+                label_text = prop_value["label"]
+                label = QtWidgets.QLabel(label_text)
                 label.setSizePolicy(label_sp)
-                label.setMinimumWidth(150)
                 label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+
+                # Berechne die benötigte Breite für dieses Label
+                label_width = (
+                    font_metrics.horizontalAdvance(label_text) + 20
+                )  # +20 für Padding
+                max_label_width = max(max_label_width, label_width)
+
                 match prop_value["data_type"]:
                     case "VARCHAR":
                         field = QtWidgets.QLineEdit()
@@ -424,24 +576,37 @@ class MainWindow(QMainWindow):
                 field.setFixedWidth(200)
                 layout.addRow(label, field)
             print(f"Section '{value}' mit {len(properties)} Properties initialisiert.")
-        print("Alle Sections initialisiert.")
-        # # Ensure correct placement in a QFormLayout (label left, field right)
-        # if hasattr(layout, "addRow"):
-        #     # Ensure fields can grow horizontally similar to other form sections
-        #     if hasattr(layout, "setFieldGrowthPolicy"):
-        #         layout.setFieldGrowthPolicy(
-        #             QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
-        #         )
-        #     layout.addRow(label, line_edit)
-        # else:
-        #     # Fallback: try to add sequentially if it's not a form layout
-        #     # (keeps compatibility if the UI changes layout type)
-        #     layout.addWidget(label)
-        #     layout.addWidget(line_edit)
+
+        # Setze die minimale Breite für alle Labels basierend auf dem breitesten Label
+        min_label_width = max(150, max_label_width)  # Mindestens 150px
+        for key, value in sections.items():
+            section = getattr(self.ui, key, None)
+            if not section or not hasattr(section, "layout"):
+                continue
+            layout = section.layout()
+            if layout is None or not isinstance(layout, QtWidgets.QFormLayout):
+                continue
+
+            # Setze die minimale Breite für alle Labels in diesem Layout
+            for i in range(layout.rowCount()):
+                label_item = layout.itemAt(i, QtWidgets.QFormLayout.ItemRole.LabelRole)
+                if label_item and label_item.widget():
+                    label_item.widget().setMinimumWidth(min_label_width)
+
+        # Passe die QToolBox-Breite an (Label + Field + Margins)
+        field_width = 200
+        margins = 40  # Geschätzte Margins und Spacing
+        toolbox_width = min_label_width + field_width + margins
+        self.ui.specific.setMinimumWidth(toolbox_width)
+
+        print(
+            f"Alle Sections initialisiert. Max Label-Breite: {min_label_width}px, ToolBox-Breite: {toolbox_width}px"
+        )
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = MainWindow()
     widget.show()
+    sys.exit(app.exec())
     sys.exit(app.exec())
