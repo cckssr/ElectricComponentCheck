@@ -1,0 +1,23 @@
+{
+  "general": {
+    "barcode": "EC-2025-000123",
+    "manufacturer": "ACME Components GmbH",
+    "orig_name": "C-10u-16V",
+    "category": "Kondensator",
+    "status": "Kalibriert",
+    "operator": "C. Kessler",
+    "location": "Labor A-2",
+    "comment": "Standardmessung nach Sichtprüfung."
+  },
+  "openbis": {
+    "project": "ELEC-CHECK",
+    "experiment": "EC-EXP-2025-10",
+    "sample": "EC-SAMPLE-000987",
+    "dataset": "DS-2025-10-17-01",
+    "space": "ELECTRONICS",
+    "user": "ckessler",
+    "session_token": "SESSION-PLACEHOLDER",
+    "link": "https://openbis.example.org/dss/webapp/#/datastore_browser/DS-2025-10-17-01"
+  },
+  "notes": "Messung mit Level 0.3V und 0.6V. Keine Auffälligkeiten."
+}

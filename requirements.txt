@@ -3,3 +3,7 @@ tomlkit==0.13.3
 pybis
 pymeasure
 pyvisa
+reportlab
+pandas
+matplotlib
+numpy
