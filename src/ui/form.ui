@@ -15,13 +15,6 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0">
-    <item row="1" column="1" colspan="2">
-     <widget class="Line" name="line">
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-     </widget>
-    </item>
     <item row="3" column="1" colspan="2">
      <widget class="Line" name="line_2">
       <property name="orientation">
@@ -30,12 +23,12 @@
      </widget>
     </item>
     <item row="0" column="1" colspan="2">
-     <layout class="QGridLayout" name="openbis" columnstretch="0,1,0,1,0">
+     <layout class="QGridLayout" name="openbis" columnstretch="0,0,0,0,0">
       <property name="bottomMargin">
        <number>0</number>
       </property>
-      <item row="1" column="3">
-       <widget class="QLabel" name="lcr_progress">
+      <item row="0" column="3">
+       <widget class="QLabel" name="openbis_progress">
         <property name="minimumSize">
          <size>
           <width>120</width>
@@ -43,20 +36,7 @@
          </size>
         </property>
         <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="4">
-       <widget class="QPushButton" name="lcr_connect">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="toolTip">
-         <string>Verbindet die ausgewählte Ressource (LCR-Meter).</string>
-        </property>
-        <property name="text">
-         <string>Verbinden</string>
+         <string>Warten auf SessionToken...</string>
         </property>
        </widget>
       </item>
@@ -80,16 +60,16 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
-       <widget class="QToolButton" name="lcr_refresh_resource">
+      <item row="1" column="4">
+       <widget class="QPushButton" name="lcr_connect">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="toolTip">
-         <string>Resourcen neu laden</string>
+         <string>Verbindet die ausgewählte Ressource (LCR-Meter).</string>
         </property>
         <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset theme="QIcon::ThemeIcon::ViewRefresh"/>
+         <string>Verbinden</string>
         </property>
        </widget>
       </item>
@@ -103,15 +83,44 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
+      <item row="2" column="4">
+       <widget class="QPushButton" name="lcr_calibrate">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="toolTip">
+         <string>Verbindet die ausgewählte Ressource (LCR-Meter).</string>
+        </property>
+        <property name="text">
+         <string>Kalibrierung</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" rowspan="2">
        <widget class="QLabel" name="label_9">
         <property name="text">
          <string>Auswahl LCR-Meter</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="3">
-       <widget class="QLabel" name="openbis_progress">
+      <item row="1" column="1" rowspan="2">
+       <widget class="QComboBox" name="lcr_resource"/>
+      </item>
+      <item row="1" column="2" rowspan="2">
+       <widget class="QToolButton" name="lcr_refresh_resource">
+        <property name="toolTip">
+         <string>Resourcen neu laden</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset theme="QIcon::ThemeIcon::ViewRefresh"/>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3" rowspan="2">
+       <widget class="QLabel" name="lcr_progress">
         <property name="minimumSize">
          <size>
           <width>120</width>
@@ -119,14 +128,24 @@
          </size>
         </property>
         <property name="text">
-         <string>Warten auf SessionToken...</string>
+         <string/>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="lcr_resource"/>
-      </item>
      </layout>
+    </item>
+    <item row="5" column="2">
+     <widget class="QPushButton" name="lcr_startmeasurement">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="toolTip">
+       <string>Startet die passende Messung mit dem LCR-Meter, wenn verbunden und eine Kategorie ausgewählt ist.</string>
+      </property>
+      <property name="text">
+       <string>LCR-Messung starten</string>
+      </property>
+     </widget>
     </item>
     <item row="2" column="1" colspan="2">
      <layout class="QGridLayout" name="general">
@@ -430,6 +449,13 @@
       </item>
      </layout>
     </item>
+    <item row="1" column="1" colspan="2">
+     <widget class="Line" name="line">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
     <item row="4" column="1" colspan="2">
      <layout class="QGridLayout" name="special" columnstretch="0,1">
       <property name="bottomMargin">
@@ -470,7 +496,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>5</number>
+         <number>4</number>
         </property>
         <widget class="QWidget" name="resistor">
          <property name="geometry">
@@ -478,7 +504,7 @@
            <x>0</x>
            <y>0</y>
            <width>450</width>
-           <height>118</height>
+           <height>90</height>
           </rect>
          </property>
          <attribute name="label">
@@ -492,7 +518,7 @@
            <x>0</x>
            <y>0</y>
            <width>450</width>
-           <height>118</height>
+           <height>90</height>
           </rect>
          </property>
          <attribute name="label">
@@ -506,7 +532,7 @@
            <x>0</x>
            <y>0</y>
            <width>450</width>
-           <height>118</height>
+           <height>90</height>
           </rect>
          </property>
          <attribute name="label">
@@ -520,7 +546,7 @@
            <x>0</x>
            <y>0</y>
            <width>450</width>
-           <height>118</height>
+           <height>90</height>
           </rect>
          </property>
          <attribute name="label">
@@ -534,7 +560,7 @@
            <x>0</x>
            <y>0</y>
            <width>450</width>
-           <height>118</height>
+           <height>90</height>
           </rect>
          </property>
          <attribute name="label">
@@ -548,7 +574,7 @@
            <x>0</x>
            <y>0</y>
            <width>450</width>
-           <height>118</height>
+           <height>90</height>
           </rect>
          </property>
          <attribute name="label">
@@ -580,19 +606,6 @@
       </property>
       <property name="text">
        <string>Hochladen</string>
-      </property>
-     </widget>
-    </item>
-    <item row="5" column="2">
-     <widget class="QPushButton" name="lcr_startmeasurement">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="toolTip">
-       <string>Startet die passende Messung mit dem LCR-Meter, wenn verbunden und eine Kategorie ausgewählt ist.</string>
-      </property>
-      <property name="text">
-       <string>LCR-Messung starten</string>
       </property>
      </widget>
     </item>
