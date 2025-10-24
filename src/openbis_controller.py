@@ -54,6 +54,7 @@ class OpenBISController(QObject):
     object_found = Signal(dict)  # Object data
     object_not_found = Signal(str)  # Object code
     properties_loaded = Signal(dict)  # Properties dictionary
+    object_updated = Signal(str)  # Object code that was updated
     error_occurred = Signal(str)  # Error message
     # Transiente Statusmeldungen (nur für Statusbar):
     #   message, level(info|success|warning|error), duration(ms)
@@ -218,6 +219,7 @@ class OpenBISController(QObject):
                     "qt_type": "Unbekannt",
                     "function": "UNKWN",
                     "qt_function": "Unbekannt",
+                    "manufacturer": "",
                     "permId": obj.permId,
                     "properties": (
                         obj.props.all_nonempty() if hasattr(obj, "props") else {}
@@ -235,6 +237,9 @@ class OpenBISController(QObject):
                     )
                     obj_data["qt_function"] = self.QT_TRANSLATE_ELEC_STATUS.get(
                         obj_data["function"], "Unbekannt"
+                    )
+                    obj_data["manufacturer"] = obj_data["properties"].get(
+                        "equipment.manufacturer", ""
                     )
 
                 self._log(f"Objekt gefunden: {code}")
@@ -338,13 +343,16 @@ class OpenBISController(QObject):
                     temp_dict["vocab_terms"] = terms
                 detailed_props[key][o_type] = temp_dict
         return detailed_props
-    
-    def update_object(self, obj_code: str, properties: Dict[str, Any]) -> bool:
+
+    def update_object(
+        self, obj_code: str, obj_permid: str, properties: Dict[str, Any]
+    ) -> bool:
         """
         Aktualisiert die Properties eines Objekts in OpenBIS.
 
         Args:
             obj_code: Code des zu aktualisierenden Objekts
+            obj_permid: PermID des zu aktualisierenden Objekts
             properties: Dictionary mit den zu aktualisierenden Properties
 
         Returns:
@@ -359,10 +367,40 @@ class OpenBISController(QObject):
             self.status_message.emit(
                 f"Update Properties für {obj_code}...", "info", 2000
             )
-
-            self.openbis.update_object(obj_code, properties)
+            # Check properties for equipment.status
+            if "equipment.status" in properties:
+                status_value = properties["equipment.status"]
+                if isinstance(status_value, str):
+                    # Erst versuchen, Label -> Key (case-insensitive)
+                    inv = {
+                        v.lower(): k for k, v in self.QT_TRANSLATE_ELEC_STATUS.items()
+                    }
+                    key = inv.get(status_value.lower())
+                    if key:
+                        properties["equipment.status"] = key
+                    else:
+                        # Falls bereits ein Key übergeben wurde (z.B. "OK"), normalisieren
+                        up = status_value.upper()
+                        if up in self.QT_TRANSLATE_ELEC_STATUS:
+                            properties["equipment.status"] = up
+                        # sonst bleibt der Wert unverändert
+            # Update Object
+            obj = self.openbis.get_object(obj_permid)
+            old_props = obj.props.all_nonempty() if hasattr(obj, "props") else {}
+            for prop, value in properties.items():
+                prop = prop.lower()
+                if prop in old_props and old_props[prop] != value:
+                    self._log(f" - Aktualisiere {prop}: {old_props[prop]} -> {value}")
+                    obj.props[prop] = value
+                elif prop not in old_props:
+                    self._log(f" - Setze {prop}: {value}")
+                    obj.props[prop] = value
+                else:
+                    self._log(f" - Keine Änderung für {prop}")
+            # obj.save()
 
             self._log(f"Properties aktualisiert: {len(properties)}")
+            self.object_updated.emit(obj_code)
             self.status_message.emit(
                 f"Properties für {obj_code} aktualisiert", "success", 2500
             )

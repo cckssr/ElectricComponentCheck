@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 import sys
 import re
-from typing import Optional
+from typing import Optional, Dict, Any
 from pathlib import Path
 from pyvisa import ResourceManager
 
@@ -20,6 +20,10 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.openbis_controller: Optional[OpenBISController] = None
         self.lcr_controller: Optional[LCRController] = None
+        self.current_object_data: Optional[dict] = (
+            None  # Speichert aktuelle Objektdaten
+        )
+        self.initial_field_values: Dict[str, Any] = {}  # Speichert initiale Feldwerte
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self._init_connections()
@@ -30,6 +34,7 @@ class MainWindow(QMainWindow):
         self.ui.session_token.returnPressed.connect(self._on_st_changed)
         self.ui.openbis_progress.setText("Warten auf Session Token...")
         self.ui.barcode.returnPressed.connect(self._on_barcode_entered)
+        self.ui.openbis_upload.clicked.connect(self._on_openbis_save_clicked)
 
         # LCR-Verbindungen
         self.ui.lcr_refresh_resource.clicked.connect(self._refresh_instruments)
@@ -287,6 +292,8 @@ class MainWindow(QMainWindow):
         self.openbis_controller.status_changed.connect(self._on_openbis_status)
         # Transiente Statusmeldungen für Statusbar
         self.openbis_controller.status_message.connect(self._on_status_message)
+        # Object updated Signal
+        self.openbis_controller.object_updated.connect(self._on_openbis_object_updated)
 
     def _on_openbis_connected(self, info: str):
         """OpenBIS erfolgreich verbunden."""
@@ -305,11 +312,15 @@ class MainWindow(QMainWindow):
     def _on_openbis_object_found(self, obj_data: dict):
         """OpenBIS-Objekt gefunden."""
         print(f"Objekt gefunden: {obj_data['code']}")
+        # Speichere Objektdaten für spätere Updates
+        self.current_object_data = obj_data
         # Hier können Objektdaten in UI geladen werden
         self.ui.object_status.setCurrentText("Bekannt")
         self._fill_object_data(obj_data)
         # Nur generelle Felder (außer type) aktivieren, type bleibt deaktiviert
         self._set_general_fields_enabled(True, enable_type=False)
+        # Aktiviere Upload-Button
+        self.ui.openbis_upload.setEnabled(True)
 
     def _on_openbis_object_not_found(self, code: str):
         """OpenBIS-Objekt nicht gefunden."""
@@ -350,6 +361,155 @@ class MainWindow(QMainWindow):
         self.openbis_controller.search_object(barcode)
         # Transiente Meldung erfolgt durch Controller
 
+    def _on_openbis_save_clicked(self):
+        """Wird aufgerufen, wenn der Save-Button geklickt wird."""
+        if not self.openbis_controller or not self.openbis_controller.is_connected():
+            QMessageBox.warning(
+                self,
+                "Fehler",
+                "Nicht mit OpenBIS verbunden.",
+            )
+            return
+
+        if not self.current_object_data:
+            QMessageBox.warning(
+                self,
+                "Fehler",
+                "Kein Objekt geladen. Bitte suchen Sie zuerst ein Objekt.",
+            )
+            return
+
+        # Sammle alle geänderten Properties aus der UI
+        properties = self._collect_properties_from_ui()
+
+        # Rufe update_object auf
+        obj_code = self.current_object_data.get("code", "")
+        obj_permid = self.current_object_data.get("permId", "")
+
+        if not obj_code or not obj_permid:
+            QMessageBox.warning(
+                self,
+                "Fehler",
+                "Ungültige Objektdaten.",
+            )
+            return
+
+        self.openbis_controller.update_object(obj_code, obj_permid, properties)
+
+    def _on_openbis_object_updated(self, obj_code: str):
+        """Wird aufgerufen, wenn ein Objekt erfolgreich aktualisiert wurde."""
+        QMessageBox.information(
+            self,
+            "Erfolg",
+            f"Objekt '{obj_code}' wurde erfolgreich aktualisiert.",
+        )
+
+    def _collect_properties_from_ui(self) -> Dict[str, Any]:
+        """
+        Sammelt nur geänderte Property-Werte aus der aktuell aktiven Seite
+        sowie generelle Felder (manufacturer, orig_name, status).
+
+        Returns:
+            Dictionary mit Property-Namen und geänderten Werten
+        """
+        properties = {}
+
+        # 1. Sammle generelle Felder (außer barcode und type)
+        general_field_mappings = {
+            "equipment.company": self.ui.manufacturer,
+            "equipment.alternativ_name": self.ui.orig_name,
+            "equipment.status": self.ui.status,
+        }
+
+        for prop_name, field in general_field_mappings.items():
+            initial_value = self.initial_field_values.get(prop_name)
+            current_value = None
+            if isinstance(field, QtWidgets.QLineEdit):
+                current_value = field.text()
+            elif isinstance(field, QtWidgets.QComboBox):
+                # Für ComboBoxen: Hole immer den data-Wert (die Kennung/Code)
+                current_value = field.currentText()
+
+            print(f"Current data for {prop_name}: {current_value}")
+            # Nur hinzufügen, wenn geändert und nicht leer
+            if (
+                current_value is not None
+                and current_value != ""
+                and current_value != initial_value
+            ):
+                properties[prop_name] = current_value
+
+        # 2. Sammle nur Properties der aktiven Seite
+        current_type_index = self.ui.type.currentIndex()
+        if current_type_index < 0:
+            return properties
+
+        # Mapping von Type-Index zu Section-Widget
+        section_widgets = [
+            self.ui.resistor,  # 0: Widerstand
+            self.ui.capacitor,  # 1: Kondensator
+            self.ui.inductor,  # 2: Induktivität
+            self.ui.transistor,  # 3: Transistor
+            self.ui.switch_2,  # 4: Schalter
+            self.ui.fuse,  # 5: Sicherung
+        ]
+
+        if current_type_index >= len(section_widgets):
+            return properties
+
+        active_section = section_widgets[current_type_index]
+        layout = active_section.layout()
+
+        if layout is None or not isinstance(layout, QtWidgets.QFormLayout):
+            return properties
+
+        # Durchlaufe alle Rows im FormLayout der aktiven Seite
+        for i in range(layout.rowCount()):
+            field_item = layout.itemAt(i, QtWidgets.QFormLayout.ItemRole.FieldRole)
+            if not field_item or not field_item.widget():
+                continue
+
+            field = field_item.widget()
+            prop_name = field.objectName()
+
+            if not prop_name:
+                continue
+
+            # Hole initialen Wert
+            initial_value = self.initial_field_values.get(prop_name)
+
+            # Extrahiere aktuellen Wert basierend auf Widget-Typ
+            current_value = None
+            if isinstance(field, QtWidgets.QLineEdit):
+                current_value = field.text()
+                # Leere Strings nicht als Änderung werten
+                if current_value == "":
+                    current_value = None
+            elif isinstance(field, QtWidgets.QComboBox):
+                # Für alle ComboBoxen: Verwende die Kennung (data), nicht den Text
+                current_value = field.currentData()
+                # Fallback auf Text nur wenn keine Kennung gesetzt ist
+                if current_value is None:
+                    current_value = field.currentText()
+            elif isinstance(field, QtWidgets.QDoubleSpinBox):
+                current_value = field.value()
+                # Prüfe, ob der Wert tatsächlich geändert wurde
+                # Wenn initial_value None war und current_value 0.0 ist, ignorieren
+                if initial_value is None and current_value == 0.0:
+                    current_value = None
+            elif isinstance(field, QtWidgets.QSpinBox):
+                current_value = field.value()
+                # Prüfe, ob der Wert tatsächlich geändert wurde
+                # Wenn initial_value None war und current_value 0 ist, ignorieren
+                if initial_value is None and current_value == 0:
+                    current_value = None
+
+            # Nur hinzufügen, wenn sich der Wert geändert hat
+            if current_value is not None and current_value != initial_value:
+                properties[prop_name] = current_value
+
+        return properties
+
     def _set_general_fields_enabled(self, enabled: bool, enable_type: bool = True):
         """
         Aktiviert/Deaktiviert die generellen Felder.
@@ -377,14 +537,32 @@ class MainWindow(QMainWindow):
     # ========================================================================
 
     def _fill_object_data(self, obj_data: dict):
-        """Füllt UI-Felder mit den Daten des gefundenen Objekts."""
+        """Füllt UI-Felder mit den Daten des gefundenen Objekts und speichert initiale Werte."""
+        # Lösche alte initiale Werte
+        self.initial_field_values.clear()
+
         # Grundlegende Felder
-        self.ui.type.setCurrentText(obj_data.get("qt_type", "Unbekannt"))
-        self.ui.manufacturer.setText(obj_data.get("manufacturer", ""))
-        self.ui.status.setCurrentText(obj_data.get("qt_function", "Unbekannt"))
-        self.ui.orig_name.setText(
-            obj_data["properties"].get("equipment.alternativ_name", "")
-        )
+        type_text = obj_data.get("qt_type", "Unbekannt")
+        self.ui.type.setCurrentText(type_text)
+        # Manuell _on_type_changed aufrufen, da setCurrentText kein Signal auslöst
+        # wenn der Index gleich bleibt
+        type_index = self.ui.type.currentIndex()
+        if type_index >= 0:
+            self._on_type_changed(type_index)
+
+        manufacturer = obj_data.get("manufacturer", "")
+        self.ui.manufacturer.setText(manufacturer)
+        self.initial_field_values["equipment.manufacturer"] = manufacturer
+
+        status = obj_data.get("qt_function", "Unbekannt")
+        self.ui.status.setCurrentText(status)
+        # Speichere den OpenBIS-Code, nicht den angezeigten Text
+        status_code = obj_data.get("function", "UNKWN")
+        self.initial_field_values["equipment.status"] = status_code
+
+        alternativ_name = obj_data["properties"].get("equipment.alternativ_name", "")
+        self.ui.orig_name.setText(alternativ_name)
+        self.initial_field_values["equipment.alternativ_name"] = alternativ_name
 
         # Spezifische Properties
         properties = obj_data.get("properties", {})
@@ -392,6 +570,10 @@ class MainWindow(QMainWindow):
             field = self.findChild(QtWidgets.QWidget, prop_name.upper())
             if field is None:
                 continue
+
+            # Speichere initialen Wert
+            self.initial_field_values[prop_name] = prop_value
+
             match field.__class__.__name__:
                 case "QLineEdit":
                     field.setText(str(prop_value) if prop_value is not None else "")
@@ -558,10 +740,14 @@ class MainWindow(QMainWindow):
                         field = QtWidgets.QDoubleSpinBox()
                         field.setSizePolicy(field_sp)
                         field.setObjectName(prop_key)
+                        field.setMaximum(1e15)  # Setze ein hohes Maximum
+                        field.setMinimum(-1e15)  # Setze ein hohes Maximum
+                        field.setDecimals(6)
                     case "INTEGER":
                         field = QtWidgets.QSpinBox()
                         field.setSizePolicy(field_sp)
                         field.setObjectName(prop_key)
+                        field.setMaximum(1000000000)  # Setze ein hohes Maximum
                     case "CONTROLLEDVOCABULARY":
                         field = QtWidgets.QComboBox()
                         field.setSizePolicy(field_sp)
@@ -579,6 +765,8 @@ class MainWindow(QMainWindow):
 
         # Setze die minimale Breite für alle Labels basierend auf dem breitesten Label
         min_label_width = max(150, max_label_width)  # Mindestens 150px
+        max_section_height = 0
+
         for key, value in sections.items():
             section = getattr(self.ui, key, None)
             if not section or not hasattr(section, "layout"):
