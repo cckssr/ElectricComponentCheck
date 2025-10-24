@@ -95,17 +95,23 @@ class MainWindow(QMainWindow):
         return mapping.get(index)
 
     def _update_lcr_measurement_state(self) -> None:
-        """Aktualisiert den Aktivierungszustand des Mess-Buttons."""
-        barcode = self.ui.barcode.text().strip()
-        component = self._get_selected_component()
-        can_measure = (
-            self.lcr_controller is not None
-            and self._lcr_connected
-            and not self._measurement_running
-            and bool(barcode)
-            and component is not None
-        )
-        self.ui.lcr_startmeasurement.setEnabled(can_measure)
+        """Aktualisiert den Aktivierungszustand und Text des Mess-Buttons."""
+        if self._measurement_running:
+            # Während der Messung: Button wird zum Stop-Button
+            self.ui.lcr_startmeasurement.setText("Messung stoppen")
+            self.ui.lcr_startmeasurement.setEnabled(True)
+        else:
+            # Vor der Messung: Button wird zum Start-Button
+            self.ui.lcr_startmeasurement.setText("LCR-Messung starten")
+            barcode = self.ui.barcode.text().strip()
+            component = self._get_selected_component()
+            can_measure = (
+                self.lcr_controller is not None
+                and self._lcr_connected
+                and bool(barcode)
+                and component is not None
+            )
+            self.ui.lcr_startmeasurement.setEnabled(can_measure)
 
     def _build_measurement_name(self, barcode: str) -> str:
         """Erzeugt den Messungsnamen basierend auf Barcode und Zeitstempel."""
@@ -113,7 +119,13 @@ class MainWindow(QMainWindow):
         return f"{barcode}_{timestamp}"
 
     def _on_lcr_start_measurement(self):
-        """Startet eine neue LCR-Messung in einem Hintergrund-Thread."""
+        """Startet/Stoppt eine LCR-Messung."""
+        # Wenn eine Messung läuft, stoppe sie
+        if self._measurement_running:
+            self._stop_measurement()
+            return
+
+        # Ansonsten starte eine neue Messung
         if not self.lcr_controller or not self.lcr_controller.is_connected():
             QMessageBox.warning(
                 self,
@@ -138,9 +150,6 @@ class MainWindow(QMainWindow):
                 "Fehlender Barcode",
                 "Bitte geben Sie zuerst einen Barcode ein.",
             )
-            return
-
-        if self._measurement_running:
             return
 
         self._measurement_running = True
@@ -170,6 +179,21 @@ class MainWindow(QMainWindow):
             f"Messung '{self._current_measurement_name}' gestartet",
             level="info",
             duration_ms=2500,
+        )
+
+    def _stop_measurement(self):
+        """Stoppt die laufende Messung."""
+        if not self._measurement_running:
+            return
+
+        # Setze Flag, damit der Worker aufhören kann
+        if self._measurement_worker:
+            self._measurement_worker.stop()
+
+        self._show_status(
+            "Messung wird abgebrochen...",
+            level="warning",
+            duration_ms=2000,
         )
 
     def _on_measurement_finished(
@@ -250,8 +274,6 @@ class MainWindow(QMainWindow):
 
         # Verbinde mit Gerät (Standard: Kondensator)
         self.lcr_controller.connect_device(resource_name, "capacitor")
-        self._lcr_connected = False
-        self._update_lcr_measurement_state()
 
     def _connect_lcr_signals(self):
         """Verbindet LCR-Controller-Signale mit UI-Updates."""
@@ -261,7 +283,9 @@ class MainWindow(QMainWindow):
         self.lcr_controller.connected.connect(self._on_lcr_connected)
         self.lcr_controller.disconnected.connect(self._on_lcr_disconnected)
         self.lcr_controller.connection_lost.connect(self._on_lcr_connection_lost)
-        self.lcr_controller.measurement_ready.connect(self.plot_controller.handle_measurement)
+        self.lcr_controller.measurement_ready.connect(
+            self.plot_controller.handle_measurement
+        )
         self.lcr_controller.error_occurred.connect(self._on_lcr_error)
         self.lcr_controller.status_changed.connect(self._on_lcr_status)
         # Transiente Statusmeldungen für Statusbar

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Optional, Literal, Tuple, Dict, Any, List
+from typing import Optional, Literal, Tuple, Dict, Any, List, Callable
 from datetime import datetime
 
 from PySide6.QtCore import QObject, Signal, QTimer, Slot
@@ -607,15 +607,17 @@ class LCRController(QObject):
         self,
         component: Component,
         frequencies_hz: Optional[List[int]] = None,
-        voltage_v: float = 0.6,
+        voltage_levels: Optional[List[int]] = None,
+        stop_flag: Optional[Callable[[], bool]] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Führt eine Messreihe über mehrere Frequenzen durch.
+        Führt eine Messreihe über mehrere Frequenzen und Spannungslevel durch.
 
         Args:
             component: Bauteiltyp (capacitor, inductor, resistor)
             frequencies_hz: Liste der Messfrequenzen (None = alle unterstützten)
-            voltage_v: Anregungsspannung in Vrms
+            voltage_levels: Liste der Spannungslevel in mV (None = [300, 600])
+            stop_flag: Optional callback, der True zurückgibt wenn abgebrochen werden soll
 
         Returns:
             Liste mit Messdaten-Dictionaries
@@ -629,23 +631,63 @@ class LCRController(QObject):
             meas_type, _, _ = component_to_meastype(component)
             frequencies_hz = self._get_supported_frequencies(meas_type)
 
+        # Standard: Zwei Spannungslevel in mV
+        if voltage_levels is None:
+            voltage_levels = [300, 600]
+
         measurements = []
-        total = len(frequencies_hz)
-
-        self.status_message.emit(f"Starte Messreihe: {total} Frequenzen", "info", 2000)
-
-        for idx, freq in enumerate(frequencies_hz, 1):
-            self.status_message.emit(f"Messung {idx}/{total}: {freq} Hz", "info", 1500)
-
-            result = self.measure_single(component, freq, voltage_v)
-            if result:
-                measurements.append(result)
+        total = len(frequencies_hz) * len(voltage_levels)
+        count = 0
 
         self.status_message.emit(
-            f"Messreihe abgeschlossen: {len(measurements)}/{total} erfolgreich",
-            "success",
-            3000,
+            f"Starte Messreihe: {len(frequencies_hz)} Frequenzen × {len(voltage_levels)} Spannungen",
+            "info",
+            2000,
         )
+
+        for voltage_mv in voltage_levels:
+            for idx, freq in enumerate(frequencies_hz, 1):
+                count += 1
+                # Prüfe, ob abgebrochen werden soll
+                if stop_flag and stop_flag():
+                    self.status_message.emit(
+                        f"Messung abgebrochen nach {len(measurements)}/{total} Punkten",
+                        "warning",
+                        3000,
+                    )
+                    return measurements
+
+                self.status_message.emit(
+                    f"Messung {count}/{total}: {freq} Hz @ {voltage_mv}mV",
+                    "info",
+                    1500,
+                )
+
+                result = self.measure_single(component, freq, voltage_mv)
+                if result:
+                    # Validiere Werte gegen extrem große Zahlen
+                    primary_val = result.get("primary_value")
+                    secondary_val = result.get("secondary_value")
+
+                    # Filtere ungültige/extrem große Werte (> 1e50)
+                    if (
+                        primary_val is not None
+                        and secondary_val is not None
+                        and abs(primary_val) < 1e50
+                        and abs(secondary_val) < 1e50
+                    ):
+                        measurements.append(result)
+                    else:
+                        self._log(
+                            f"Ungültige Messwerte ignoriert: pri={primary_val}, sec={secondary_val}"
+                        )
+
+        if not stop_flag or not stop_flag():
+            self.status_message.emit(
+                f"Messreihe abgeschlossen: {len(measurements)}/{total} erfolgreich",
+                "success",
+                3000,
+            )
 
         return measurements
 
@@ -700,14 +742,31 @@ class LCRMeasurementWorker(QObject):
         self._controller = controller
         self._component = component
         self._measurement_name = measurement_name
+        self._stop_requested = False
+
+    def stop(self) -> None:
+        """Fordert den Worker auf, die Messung zu beenden."""
+        self._stop_requested = True
 
     @Slot()
     def run(self) -> None:
         self.started.emit(self._measurement_name)
         try:
-            results = self._controller.measure_sweep(self._component)
+            results = self._controller.measure_sweep(
+                self._component, stop_flag=self._is_stop_requested
+            )
         except Exception as exc:  # noqa: BLE001 - Fehler weiterreichen
-            self.failed.emit(str(exc))
+            if self._stop_requested:
+                self.failed.emit("Messung abgebrochen")
+            else:
+                self.failed.emit(str(exc))
             return
 
-        self.finished.emit(self._measurement_name, results)
+        if self._stop_requested:
+            self.failed.emit("Messung abgebrochen")
+        else:
+            self.finished.emit(self._measurement_name, results)
+
+    def _is_stop_requested(self) -> bool:
+        """Callback für measure_sweep zur Überprüfung des Stop-Flags."""
+        return self._stop_requested
