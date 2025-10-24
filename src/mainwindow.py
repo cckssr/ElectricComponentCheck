@@ -604,9 +604,13 @@ class MainWindow(QMainWindow):
         )
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for the application."""
     app = QApplication(sys.argv)
     widget = MainWindow()
     widget.show()
     sys.exit(app.exec())
-    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

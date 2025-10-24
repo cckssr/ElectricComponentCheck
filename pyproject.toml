@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "electric-component-check"
+version = "0.1.0"
+description = "LCR measurement uncertainty calculator with GUI for electrical component testing"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["lcr", "measurement", "uncertainty", "electrical", "components", "testing"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "PySide6>=6.9.0",
+    "tomlkit>=0.13.3",
+    "pybis",
+    "pymeasure",
+    "pyvisa",
+    "reportlab",
+    "pandas",
+    "matplotlib",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "black",
+    "flake8",
+    "mypy",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/ElectricComponentCheck"
+Documentation = "https://github.com/yourusername/ElectricComponentCheck#readme"
+Repository = "https://github.com/yourusername/ElectricComponentCheck.git"
+Issues = "https://github.com/yourusername/ElectricComponentCheck/issues"
+
+[project.scripts]
+electric-component-check = "mainwindow:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.ui"]
