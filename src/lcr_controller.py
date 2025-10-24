@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional, Literal, Tuple, Dict, Any, List
 from datetime import datetime
 
-from PySide6.QtCore import QObject, Signal, QTimer
+from PySide6.QtCore import QObject, Signal, QTimer, Slot
 
 try:
     from voltcraft_lcr500 import LCR500
@@ -680,3 +680,34 @@ class LCRController(QObject):
             "component": self._hw_controller.component,
             "connected": str(self.is_connected()),
         }
+
+
+class LCRMeasurementWorker(QObject):
+    """Worker, der eine Messreihe im Hintergrund ausführt."""
+
+    started = Signal(str)
+    finished = Signal(str, list)
+    failed = Signal(str)
+
+    def __init__(
+        self,
+        controller: "LCRController",
+        component: Component,
+        measurement_name: str,
+        parent: Optional[QObject] = None,
+    ) -> None:
+        super().__init__(parent)
+        self._controller = controller
+        self._component = component
+        self._measurement_name = measurement_name
+
+    @Slot()
+    def run(self) -> None:
+        self.started.emit(self._measurement_name)
+        try:
+            results = self._controller.measure_sweep(self._component)
+        except Exception as exc:  # noqa: BLE001 - Fehler weiterreichen
+            self.failed.emit(str(exc))
+            return
+
+        self.finished.emit(self._measurement_name, results)

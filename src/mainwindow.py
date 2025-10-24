@@ -1,7 +1,8 @@
 # This Python file uses the following encoding: utf-8
 import sys
 import re
-from typing import Optional, Dict, Any
+from datetime import datetime
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 from pyvisa import ResourceManager
 
@@ -10,7 +11,8 @@ from PySide6 import QtWidgets, QtCore
 
 from ui.ui_form import Ui_MainWindow
 from openbis_controller import OpenBISController
-from lcr_controller import LCRController
+from lcr_controller import LCRController, LCRMeasurementWorker
+from plot_controller import PlotController
 
 SERVER_URL = "https://openbis.physik.tu-berlin.de"
 
@@ -26,7 +28,18 @@ class MainWindow(QMainWindow):
         self.initial_field_values: Dict[str, Any] = {}  # Speichert initiale Feldwerte
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # Statusflags für LCR-Integration
+        self._lcr_connected = False
+        self._measurement_running = False
+        self._measurement_thread: Optional[QtCore.QThread] = None
+        self._measurement_worker: Optional[LCRMeasurementWorker] = None
+        self._current_measurement_name: Optional[str] = None
+
+        # Plot-Controller kapselt alle Plot-bezogenen Operationen
+        self.plot_controller = PlotController(self.ui.plot_widget, self)
         self._init_connections()
+        self._update_lcr_measurement_state()
 
     def _init_connections(self):
         """Initialisiert UI-Verbindungen und Controller."""
@@ -39,6 +52,8 @@ class MainWindow(QMainWindow):
         # LCR-Verbindungen
         self.ui.lcr_refresh_resource.clicked.connect(self._refresh_instruments)
         self.ui.lcr_resource.currentIndexChanged.connect(self._on_resource_changed)
+        self.ui.lcr_startmeasurement.clicked.connect(self._on_lcr_start_measurement)
+        self.ui.barcode.textChanged.connect(self._update_lcr_measurement_state)
 
         # Type-ComboBox Verbindung
         self.ui.type.currentIndexChanged.connect(self._on_type_changed)
@@ -73,6 +88,125 @@ class MainWindow(QMainWindow):
         if current_type_index >= 0:
             self._update_specific_fields_enabled(current_type_index)
 
+    def _get_selected_component(self) -> Optional[str]:
+        """Gibt den aktuell messbaren Bauteiltyp zurück."""
+        mapping = {0: "resistor", 1: "capacitor", 2: "inductor"}
+        index = self.ui.type.currentIndex()
+        return mapping.get(index)
+
+    def _update_lcr_measurement_state(self) -> None:
+        """Aktualisiert den Aktivierungszustand des Mess-Buttons."""
+        barcode = self.ui.barcode.text().strip()
+        component = self._get_selected_component()
+        can_measure = (
+            self.lcr_controller is not None
+            and self._lcr_connected
+            and not self._measurement_running
+            and bool(barcode)
+            and component is not None
+        )
+        self.ui.lcr_startmeasurement.setEnabled(can_measure)
+
+    def _build_measurement_name(self, barcode: str) -> str:
+        """Erzeugt den Messungsnamen basierend auf Barcode und Zeitstempel."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"{barcode}_{timestamp}"
+
+    def _on_lcr_start_measurement(self):
+        """Startet eine neue LCR-Messung in einem Hintergrund-Thread."""
+        if not self.lcr_controller or not self.lcr_controller.is_connected():
+            QMessageBox.warning(
+                self,
+                "LCR nicht verbunden",
+                "Bitte verbinden Sie zuerst ein LCR-Gerät.",
+            )
+            return
+
+        component = self._get_selected_component()
+        if component is None:
+            QMessageBox.warning(
+                self,
+                "Bauteil nicht messbar",
+                "Für den ausgewählten Typ ist keine LCR-Messung möglich.",
+            )
+            return
+
+        barcode = self.ui.barcode.text().strip()
+        if not barcode:
+            QMessageBox.warning(
+                self,
+                "Fehlender Barcode",
+                "Bitte geben Sie zuerst einen Barcode ein.",
+            )
+            return
+
+        if self._measurement_running:
+            return
+
+        self._measurement_running = True
+        self._current_measurement_name = self._build_measurement_name(barcode)
+        self.plot_controller.start_measurement(self._current_measurement_name)
+        self._update_lcr_measurement_state()
+
+        self._measurement_thread = QtCore.QThread(self)
+        self._measurement_worker = LCRMeasurementWorker(
+            self.lcr_controller,
+            component,
+            self._current_measurement_name,
+        )
+        self._measurement_worker.moveToThread(self._measurement_thread)
+
+        self._measurement_thread.started.connect(self._measurement_worker.run)
+        self._measurement_worker.finished.connect(self._on_measurement_finished)
+        self._measurement_worker.failed.connect(self._on_measurement_failed)
+        self._measurement_worker.finished.connect(self._measurement_thread.quit)
+        self._measurement_worker.failed.connect(self._measurement_thread.quit)
+        self._measurement_worker.finished.connect(self._measurement_worker.deleteLater)
+        self._measurement_worker.failed.connect(self._measurement_worker.deleteLater)
+        self._measurement_thread.finished.connect(self._cleanup_measurement_thread)
+        self._measurement_thread.start()
+
+        self._show_status(
+            f"Messung '{self._current_measurement_name}' gestartet",
+            level="info",
+            duration_ms=2500,
+        )
+
+    def _on_measurement_finished(
+        self, measurement_name: str, results: List[Dict[str, Any]]
+    ) -> None:
+        """Wird aufgerufen, wenn die Messung erfolgreich beendet wurde."""
+        self._measurement_running = False
+        if results:
+            self.plot_controller.finish_measurement(results)
+            self._show_status(
+                f"Messung '{measurement_name}' abgeschlossen",
+                level="success",
+                duration_ms=4000,
+            )
+        else:
+            self._show_status(
+                "Messung abgeschlossen, aber keine Daten erhalten",
+                level="warning",
+                duration_ms=4000,
+            )
+
+        self._update_lcr_measurement_state()
+
+    def _on_measurement_failed(self, error: str) -> None:
+        """Reagiert auf Fehler im Mess-Thread."""
+        self._measurement_running = False
+        self._show_status(error, level="error", duration_ms=5000)
+        QMessageBox.critical(self, "Messfehler", error)
+        self._update_lcr_measurement_state()
+
+    def _cleanup_measurement_thread(self) -> None:
+        """Aufräumen nach Thread-Ende."""
+        if self._measurement_thread:
+            self._measurement_thread.deleteLater()
+        self._measurement_thread = None
+        self._measurement_worker = None
+
     # ========================================================================
     # LCR-Controller Methoden
     # ========================================================================
@@ -85,6 +219,8 @@ class MainWindow(QMainWindow):
         self.ui.lcr_resource.addItems(instruments)
         self.ui.lcr_resource.setCurrentIndex(-1)
         self.ui.lcr_progress.setText("Nicht verbunden")
+        self._lcr_connected = False
+        self._update_lcr_measurement_state()
 
         # Automatisch erstes USB-Gerät auswählen
         for inst in instruments:
@@ -114,6 +250,8 @@ class MainWindow(QMainWindow):
 
         # Verbinde mit Gerät (Standard: Kondensator)
         self.lcr_controller.connect_device(resource_name, "capacitor")
+        self._lcr_connected = False
+        self._update_lcr_measurement_state()
 
     def _connect_lcr_signals(self):
         """Verbindet LCR-Controller-Signale mit UI-Updates."""
@@ -123,7 +261,7 @@ class MainWindow(QMainWindow):
         self.lcr_controller.connected.connect(self._on_lcr_connected)
         self.lcr_controller.disconnected.connect(self._on_lcr_disconnected)
         self.lcr_controller.connection_lost.connect(self._on_lcr_connection_lost)
-        self.lcr_controller.measurement_ready.connect(self._on_lcr_measurement)
+        self.lcr_controller.measurement_ready.connect(self.plot_controller.handle_measurement)
         self.lcr_controller.error_occurred.connect(self._on_lcr_error)
         self.lcr_controller.status_changed.connect(self._on_lcr_status)
         # Transiente Statusmeldungen für Statusbar
@@ -133,11 +271,15 @@ class MainWindow(QMainWindow):
         """LCR-Gerät erfolgreich verbunden."""
         self.ui.lcr_progress.setText(f"Verbunden: {device_id}")
         self.ui.lcr_progress.setStyleSheet("color: green;")
+        self._lcr_connected = True
+        self._update_lcr_measurement_state()
 
     def _on_lcr_disconnected(self):
         """LCR-Gerät getrennt."""
         self.ui.lcr_progress.setText("Verbindung getrennt")
         self.ui.lcr_progress.setStyleSheet("")
+        self._lcr_connected = False
+        self._update_lcr_measurement_state()
 
     def _on_lcr_connection_lost(self):
         """LCR-Verbindung verloren."""
@@ -146,11 +288,8 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(
             self, "Verbindungsfehler", "Verbindung zum LCR-Gerät verloren!"
         )
-
-    def _on_lcr_measurement(self, data: dict):
-        """Neue LCR-Messdaten empfangen."""
-        # Hier können Messdaten verarbeitet werden
-        print(f"Messung: {data['primary_name']}={data['primary_value']}")
+        self._lcr_connected = False
+        self._update_lcr_measurement_state()
 
     def _on_lcr_error(self, error_msg: str):
         """LCR-Fehler aufgetreten."""
@@ -180,6 +319,7 @@ class MainWindow(QMainWindow):
             self.ui.specific.setCurrentIndex(index)
             self._update_specific_fields_enabled(index)
             self._log_type_change(index)
+        self._update_lcr_measurement_state()
 
     def _log_type_change(self, index: int):
         """Gibt eine Debug-Meldung für die Typänderung aus."""
