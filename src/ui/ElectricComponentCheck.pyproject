@@ -1,6 +1,7 @@
 {
     "files": [
         "../mainwindow.py",
+        "calibration.ui",
         "form.ui"
     ]
 }

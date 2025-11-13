@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PySide6 import QtWidgets, QtCore
 
 from ui.ui_form import Ui_MainWindow
+from ui.calibration_ui import Ui_Dialog as Ui_CalibrationDialog
 from openbis_controller import OpenBISController
 from lcr_controller import LCRController, LCRMeasurementWorker
 from plot_controller import PlotController
@@ -36,6 +37,10 @@ class MainWindow(QMainWindow):
         self._measurement_worker: Optional[LCRMeasurementWorker] = None
         self._current_measurement_name: Optional[str] = None
 
+        # Kalibrierungsstatus
+        self._calibration_open_done = False
+        self._calibration_short_done = False
+
         # Plot-Controller kapselt alle Plot-bezogenen Operationen
         self.plot_controller = PlotController(self.ui.plot_widget, self)
         self._init_connections()
@@ -53,6 +58,7 @@ class MainWindow(QMainWindow):
         self.ui.lcr_refresh_resource.clicked.connect(self._refresh_instruments)
         self.ui.lcr_resource.currentIndexChanged.connect(self._on_resource_changed)
         self.ui.lcr_startmeasurement.clicked.connect(self._on_lcr_start_measurement)
+        self.ui.lcr_calibrate.clicked.connect(self._on_lcr_calibrate_clicked)
         self.ui.barcode.textChanged.connect(self._update_lcr_measurement_state)
 
         # Type-ComboBox Verbindung
@@ -178,7 +184,6 @@ class MainWindow(QMainWindow):
         self._show_status(
             f"Messung '{self._current_measurement_name}' gestartet",
             level="info",
-            duration_ms=2500,
         )
 
     def _stop_measurement(self):
@@ -297,6 +302,7 @@ class MainWindow(QMainWindow):
         self.ui.lcr_progress.setStyleSheet("color: green;")
         self._lcr_connected = True
         self._update_lcr_measurement_state()
+        self._update_calibration_button_state()
 
     def _on_lcr_disconnected(self):
         """LCR-Gerät getrennt."""
@@ -304,6 +310,7 @@ class MainWindow(QMainWindow):
         self.ui.lcr_progress.setStyleSheet("")
         self._lcr_connected = False
         self._update_lcr_measurement_state()
+        self._update_calibration_button_state()
 
     def _on_lcr_connection_lost(self):
         """LCR-Verbindung verloren."""
@@ -314,6 +321,7 @@ class MainWindow(QMainWindow):
         )
         self._lcr_connected = False
         self._update_lcr_measurement_state()
+        self._update_calibration_button_state()
 
     def _on_lcr_error(self, error_msg: str):
         """LCR-Fehler aufgetreten."""
@@ -323,6 +331,50 @@ class MainWindow(QMainWindow):
     def _on_lcr_status(self, status: str):
         """LCR-Status geändert."""
         self.ui.lcr_progress.setText(status)
+
+    def _update_calibration_button_state(self) -> None:
+        """Aktualisiert den Aktivierungszustand des Kalibrierungs-Buttons."""
+        can_calibrate = self.lcr_controller is not None and self._lcr_connected
+        self.ui.lcr_calibrate.setEnabled(can_calibrate)
+
+    def _on_lcr_calibrate_clicked(self):
+        """Öffnet den Kalibrierungs-Dialog und speichert den Status."""
+        if not self.lcr_controller or not self._lcr_connected:
+            QMessageBox.warning(
+                self,
+                "LCR nicht verbunden",
+                "Bitte verbinden Sie zuerst ein LCR-Gerät.",
+            )
+            return
+
+        # Erstelle und konfiguriere den Dialog
+        dialog = QtWidgets.QDialog(self)
+        dialog_ui = Ui_CalibrationDialog()
+        dialog_ui.setupUi(dialog)
+        dialog.setWindowTitle("LCR Kalibrierung")
+
+        # Setze aktuelle Checkbox-Zustände
+        dialog_ui.openCal.setChecked(self._calibration_open_done)
+        dialog_ui.shortCal.setChecked(self._calibration_short_done)
+
+        # Zeige Dialog und warte auf Resultat
+        result = dialog.exec()
+
+        # Wenn OK gedrückt wurde, speichere die Checkbox-Stati
+        if result == QtWidgets.QDialog.DialogCode.Accepted:
+            self._calibration_open_done = dialog_ui.openCal.isChecked()
+            self._calibration_short_done = dialog_ui.shortCal.isChecked()
+
+            self._show_status(
+                f"Kalibrierungsstatus gespeichert \
+                    (Open: {self._calibration_open_done}, Short: {self._calibration_short_done})",
+                level="success",
+                duration_ms=4000,
+            )
+            print(
+                f"[MainWindow] Kalibrierung: \
+                    Open={self._calibration_open_done}, Short={self._calibration_short_done}"
+            )
 
     # ========================================================================
     # Type-Auswahl und QToolBox Synchronisation
@@ -760,7 +812,9 @@ class MainWindow(QMainWindow):
     def _on_status_message(self, message: str, level: str, duration_ms: int):
         self._show_status(message, level=level, duration_ms=duration_ms)
 
-    def _show_status(self, message: str, level: str = "info", duration_ms: int = 3000):
+    def _show_status(
+        self, message: str, level: str = "info", duration_ms: Optional[int] = None
+    ):
         """Zeigt eine formatierte, temporäre Meldung in der Statusbar an."""
         bar = self.statusBar()
         # Farben nach Level

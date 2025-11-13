@@ -49,6 +49,19 @@ class PlotController(QtCore.QObject):
 
         self.primary_plot.setLabel("bottom", "")
         self.secondary_plot.setLabel("bottom", "Frequenz (Hz)")
+        # Erstelle die Legenden hier einmalig, bevor Kurven geplottet werden.
+        pitem = self.primary_plot.getPlotItem()
+        if (
+            getattr(pitem, "legend", None) is None
+            and getattr(pitem, "addLegend", None) is not None
+        ):
+            pitem.addLegend()
+        sitem = self.secondary_plot.getPlotItem()
+        if (
+            getattr(sitem, "legend", None) is None
+            and getattr(sitem, "addLegend", None) is not None
+        ):
+            sitem.addLegend()
 
     def reset(self) -> None:
         """Remove all measurement data and clear the plots."""
@@ -58,6 +71,19 @@ class PlotController(QtCore.QObject):
 
         self.primary_plot.clear()
         self.secondary_plot.clear()
+        # Nach dem Clear die Legenden neu anlegen (clear() entfernt sie unter Umständen)
+        pitem = self.primary_plot.getPlotItem()
+        if (
+            getattr(pitem, "legend", None) is None
+            and getattr(pitem, "addLegend", None) is not None
+        ):
+            pitem.addLegend()
+        sitem = self.secondary_plot.getPlotItem()
+        if (
+            getattr(sitem, "legend", None) is None
+            and getattr(sitem, "addLegend", None) is not None
+        ):
+            sitem.addLegend()
         self.primary_plot.setLabel("left", "Primärparameter")
         self.secondary_plot.setLabel("left", "Sekundärparameter")
         self.primary_plot.setTitle(self._measurement_name or "")
@@ -185,6 +211,8 @@ class PlotController(QtCore.QObject):
         pen = pg.mkPen(color=color, width=2)
         symbol_brush = pg.mkBrush(color)
 
+        # Legende wird einmal in _setup_layout() erstellt; hier nicht erneut anlegen.
+
         # Hole oder erstelle Plot-Items für diese Spannung
         if voltage not in self._primary_items:
             curve = self.primary_plot.plot(
@@ -203,8 +231,6 @@ class PlotController(QtCore.QObject):
 
         self.primary_plot.setLabel("left", label or "Primärparameter")
         self.primary_plot.setTitle(self._measurement_name or "")
-        # Aktiviere Legende
-        self.primary_plot.addLegend()
 
     def _update_secondary_plot(
         self,
@@ -224,6 +250,8 @@ class PlotController(QtCore.QObject):
         pen = pg.mkPen(color=color, width=2)
         symbol_brush = pg.mkBrush(color)
 
+        # Legende wird einmal in _setup_layout() erstellt; hier nicht erneut anlegen.
+
         # Hole oder erstelle Plot-Items für diese Spannung
         if voltage not in self._secondary_items:
             curve = self.secondary_plot.plot(
@@ -241,5 +269,4 @@ class PlotController(QtCore.QObject):
             curve.setData(freqs, values)
 
         self.secondary_plot.setLabel("left", label or "Sekundärparameter")
-        # Aktiviere Legende
-        self.secondary_plot.addLegend()
+        # Legendenerstellung erfolgt weiter oben (vor dem Erstellen der Kurve)

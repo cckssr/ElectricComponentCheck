@@ -1,5 +1,5 @@
-PySide6==6.9.0
-tomlkit==0.13.3
+PySide6
+tomlkit
 pybis
 pymeasure
 pyvisa

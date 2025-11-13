@@ -1,0 +1,2 @@
+[console_scripts]
+electric-component-check = mainwindow:main

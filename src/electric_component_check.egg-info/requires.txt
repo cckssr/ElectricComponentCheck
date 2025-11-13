@@ -1,0 +1,16 @@
+PySide6>=6.9.0
+tomlkit>=0.13.3
+pybis
+pymeasure
+pyvisa
+reportlab
+pandas
+matplotlib
+numpy
+
+[dev]
+pytest>=7.0
+pytest-cov
+black
+flake8
+mypy

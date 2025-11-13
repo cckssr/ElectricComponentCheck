@@ -73,5 +73,6 @@ CMakeLists.txt.user*
 *.exe
 
 .venv_python311*
+.venv*
 .qtcreator*
 measurements*

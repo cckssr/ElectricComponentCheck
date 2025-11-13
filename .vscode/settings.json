@@ -1,3 +1,10 @@
 {
     "python-envs.pythonProjects": [],
+    // Python-Interpreter auf die aktuelle venv setzen
+    "python.defaultInterpreterPath": ".venv/bin/python",
+
+    // Code Runner auf die aktuelle venv anpassen
+    "code-runner.executorMap": {
+        "python": ".venv/bin/python -u"
+    },
 }

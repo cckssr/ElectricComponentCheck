@@ -413,3 +413,43 @@ class OpenBISController(QObject):
             self.error_occurred.emit(error_msg)
             self.status_message.emit(error_msg, "error", 6000)
             return False
+
+    def create_object(self, obj_code, properties: Dict[str, Any], object_type: str = "ELEKTRONISCHES_BAUTEIL") -> bool:
+        """
+        Erstellt ein neues Objekt in OpenBIS.
+
+        Args:
+            obj_code: Code des zu erstellenden Objekts
+            properties: Dictionary mit den Properties des neuen Objekts
+            object_type: Typ des zu erstellenden Objekts
+        """
+        if not self._connected:
+            self.error_occurred.emit("Nicht mit OpenBIS verbunden")
+            return False
+
+        try:
+            self._log(f"Erstelle neues Objekt: {obj_code}...")
+            self.status_message.emit(
+                f"Erstelle neues Objekt: {obj_code}...", "info", 2000
+            )
+
+            # Create Object
+            obj = self.openbis.create_object(object_type, obj_code, properties)
+            if not obj:
+                self.error_occurred.emit("Fehler beim Erstellen des Objekts")
+                return False
+
+            self._log(f"Objekt erstellt: {obj_code}")
+            self.object_created.emit(obj_code)
+            self.status_message.emit(
+                f"Objekt erstellt: {obj_code}", "success", 2500
+            )
+
+            return True
+
+        except Exception as e:
+            error_msg = f"Fehler beim Erstellen des Objekts: {str(e)}"
+            self._log(error_msg)
+            self.error_occurred.emit(error_msg)
+            self.status_message.emit(error_msg, "error", 6000)
+            return False

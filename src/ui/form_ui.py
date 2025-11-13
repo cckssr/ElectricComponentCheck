@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.0
+## Created by: Qt User Interface Compiler version 6.10.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -24,7 +24,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(985, 738)
+        MainWindow.resize(1141, 880)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -270,7 +270,7 @@ class Ui_MainWindow(object):
 
         self.special = QGridLayout()
         self.special.setObjectName(u"special")
-        self.special.setContentsMargins(-1, -1, -1, 50)
+        self.special.setContentsMargins(-1, -1, -1, 0)
         self.label_8 = QLabel(self.centralwidget)
         self.label_8.setObjectName(u"label_8")
         self.label_8.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -283,6 +283,17 @@ class Ui_MainWindow(object):
 
         self.special.addWidget(self.label_7, 0, 0, 1, 1)
 
+        self.plot_widget = QWidget(self.centralwidget)
+        self.plot_widget.setObjectName(u"plot_widget")
+        self.plot_widget.setMinimumSize(QSize(100, 10))
+
+        self.special.addWidget(self.plot_widget, 2, 1, 1, 1)
+
+        self.lcr_statistics = QLabel(self.centralwidget)
+        self.lcr_statistics.setObjectName(u"lcr_statistics")
+
+        self.special.addWidget(self.lcr_statistics, 1, 1, 1, 1)
+
         self.specific = QToolBox(self.centralwidget)
         self.specific.setObjectName(u"specific")
         sizePolicy4 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Expanding)
@@ -293,49 +304,44 @@ class Ui_MainWindow(object):
         self.specific.setMinimumSize(QSize(450, 0))
         self.resistor = QWidget()
         self.resistor.setObjectName(u"resistor")
-        self.resistor.setGeometry(QRect(0, 0, 450, 90))
+        self.resistor.setGeometry(QRect(0, 0, 450, 281))
         self.formLayout = QFormLayout(self.resistor)
         self.formLayout.setObjectName(u"formLayout")
         self.specific.addItem(self.resistor, u"Widerstand")
         self.capacitor = QWidget()
         self.capacitor.setObjectName(u"capacitor")
-        self.capacitor.setGeometry(QRect(0, 0, 450, 90))
+        self.capacitor.setGeometry(QRect(0, 0, 450, 281))
         self.formLayout_7 = QFormLayout(self.capacitor)
         self.formLayout_7.setObjectName(u"formLayout_7")
         self.specific.addItem(self.capacitor, u"Kondensator")
         self.inductor = QWidget()
         self.inductor.setObjectName(u"inductor")
-        self.inductor.setGeometry(QRect(0, 0, 450, 90))
+        self.inductor.setGeometry(QRect(0, 0, 450, 281))
         self.formLayout_8 = QFormLayout(self.inductor)
         self.formLayout_8.setObjectName(u"formLayout_8")
         self.specific.addItem(self.inductor, u"Induktivit\u00e4t")
         self.transistor = QWidget()
         self.transistor.setObjectName(u"transistor")
-        self.transistor.setGeometry(QRect(0, 0, 450, 90))
+        self.transistor.setGeometry(QRect(0, 0, 450, 281))
         self.formLayout_9 = QFormLayout(self.transistor)
         self.formLayout_9.setObjectName(u"formLayout_9")
         self.specific.addItem(self.transistor, u"Transistor")
         self.switch_2 = QWidget()
         self.switch_2.setObjectName(u"switch_2")
-        self.switch_2.setGeometry(QRect(0, 0, 450, 90))
+        self.switch_2.setGeometry(QRect(0, 0, 450, 281))
         self.formLayout_10 = QFormLayout(self.switch_2)
         self.formLayout_10.setObjectName(u"formLayout_10")
         self.specific.addItem(self.switch_2, u"Schalter")
         self.fuse = QWidget()
         self.fuse.setObjectName(u"fuse")
-        self.fuse.setGeometry(QRect(0, 0, 450, 90))
+        self.fuse.setGeometry(QRect(0, 0, 450, 281))
         self.formLayout_11 = QFormLayout(self.fuse)
         self.formLayout_11.setObjectName(u"formLayout_11")
         self.specific.addItem(self.fuse, u"Sicherung")
 
-        self.special.addWidget(self.specific, 1, 0, 1, 1)
+        self.special.addWidget(self.specific, 1, 0, 2, 1)
 
-        self.plot_widget = QWidget(self.centralwidget)
-        self.plot_widget.setObjectName(u"plot_widget")
-        self.plot_widget.setMinimumSize(QSize(100, 10))
-
-        self.special.addWidget(self.plot_widget, 1, 1, 1, 1)
-
+        self.special.setRowStretch(2, 1)
         self.special.setColumnStretch(1, 1)
 
         self.gridLayout.addLayout(self.special, 4, 1, 1, 2)
@@ -349,7 +355,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 985, 24))
+        self.menubar.setGeometry(QRect(0, 0, 1141, 24))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -361,7 +367,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.specific.setCurrentIndex(4)
+        self.specific.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -418,6 +424,7 @@ class Ui_MainWindow(object):
 
         self.label_8.setText(QCoreApplication.translate("MainWindow", u"Messung (LCR)", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"OpenBIS Eigenschaften", None))
+        self.lcr_statistics.setText("")
         self.specific.setItemText(self.specific.indexOf(self.resistor), QCoreApplication.translate("MainWindow", u"Widerstand", None))
         self.specific.setItemText(self.specific.indexOf(self.capacitor), QCoreApplication.translate("MainWindow", u"Kondensator", None))
         self.specific.setItemText(self.specific.indexOf(self.inductor), QCoreApplication.translate("MainWindow", u"Induktivit\u00e4t", None))

@@ -217,76 +217,75 @@ class LCR500HardwareController:
     def fetch_measurement(self) -> Tuple[Optional[float], Optional[float]]:
         """Liest Messwerte mit Retry-Logik bei 'Data Not Ready!'."""
         for attempt in range(self.FETCH_RETRIES):
-            if hasattr(self.dev, "fetch"):
-                try:
-                    time.sleep(self.FETCH_RETRY_DELAY)
-                    val = getattr(self.dev, "fetch")
-                    self._log(f"Messung Versuch {attempt + 1}: {val}")
+            try:
+                time.sleep(self.FETCH_RETRY_DELAY)
+                val = getattr(self.dev, "fetch")
+                self._log(f"Messung Versuch {attempt + 1}: {val}")
 
-                    # Listen-Rückgabe
-                    if isinstance(val, list):
-                        if len(val) >= 2:
-                            try:
-                                p, s = float(val[0]), float(val[1])
-                                self._log(f"Messung (Liste) -> p={p}, s={s}")
-                                return p, s
-                            except (ValueError, TypeError, IndexError) as e:
-                                self._log(f"Fehler beim Parsen der Liste: {e}")
-                                time.sleep(self.FETCH_RETRY_DELAY)
-                                continue
-
-                    # Tupel-Rückgabe
-                    elif isinstance(val, tuple):
-                        if len(val) >= 2:
-                            try:
-                                p, s = float(val[0]), float(val[1])
-                                self._log(f"Messung (Tupel) -> p={p}, s={s}")
-                                return p, s
-                            except (ValueError, TypeError, IndexError) as e:
-                                self._log(f"Fehler beim Parsen des Tupels: {e}")
-                                time.sleep(self.FETCH_RETRY_DELAY)
-                                continue
-
-                    # String-Antwort verarbeiten
-                    elif isinstance(val, str):
-                        # Check auf "Data Not Ready!"
-                        if "Data Not Ready!" in val or val.strip() == "":
-                            msg = (
-                                "'Data Not Ready!'"
-                                if "Data Not Ready!" in val
-                                else "leerer String"
-                            )
-                            self._log(
-                                f"Messung -> {msg}, Wiederholung ({attempt + 1}/{self.FETCH_RETRIES})..."
-                            )
+                # Listen-Rückgabe
+                if isinstance(val, list):
+                    if len(val) >= 2:
+                        try:
+                            p, s = float(val[0]), float(val[1])
+                            self._log(f"Messung (Liste) -> p={p}, s={s}")
+                            return p, s
+                        except (ValueError, TypeError, IndexError) as e:
+                            self._log(f"Fehler beim Parsen der Liste: {e}")
                             time.sleep(self.FETCH_RETRY_DELAY)
                             continue
 
-                        # Kommagetrennte Werte parsen
-                        parts = [v.strip() for v in val.split(",")]
-
-                        # Weitere Validierung
-                        if any("Data Not Ready!" in p for p in parts):
-                            self._log(
-                                f"Messung -> partielles 'Data Not Ready!' in '{val}', Wiederholung ({attempt + 1}/{self.FETCH_RETRIES})..."
-                            )
+                # Tupel-Rückgabe
+                elif isinstance(val, tuple):
+                    if len(val) >= 2:
+                        try:
+                            p, s = float(val[0]), float(val[1])
+                            self._log(f"Messung (Tupel) -> p={p}, s={s}")
+                            return p, s
+                        except (ValueError, TypeError, IndexError) as e:
+                            self._log(f"Fehler beim Parsen des Tupels: {e}")
                             time.sleep(self.FETCH_RETRY_DELAY)
                             continue
 
-                        if len(parts) >= 2:
-                            try:
-                                p, s = float(parts[0]), float(parts[1])
-                                self._log(f"Messung (String) -> p={p}, s={s}")
-                                return p, s
-                            except (ValueError, TypeError) as e:
-                                self._log(f"Parse-Fehler: {e} in '{val}'")
-                                time.sleep(self.FETCH_RETRY_DELAY)
-                                continue
+                # String-Antwort verarbeiten
+                elif isinstance(val, str):
+                    # Check auf "Data Not Ready!"
+                    if "Data Not Ready!" in val or val.strip() == "":
+                        msg = (
+                            "'Data Not Ready!'"
+                            if "Data Not Ready!" in val
+                            else "leerer String"
+                        )
+                        self._log(
+                            f"Messung -> {msg}, Wiederholung ({attempt + 1}/{self.FETCH_RETRIES})..."
+                        )
+                        time.sleep(self.FETCH_RETRY_DELAY)
+                        continue
 
-                except (AttributeError, ValueError, TypeError) as e:
-                    self._log(f"Messfehler: {e}")
-                    time.sleep(self.FETCH_RETRY_DELAY)
-                    continue
+                    # Kommagetrennte Werte parsen
+                    parts = [v.strip() for v in val.split(",")]
+
+                    # Weitere Validierung
+                    if any("Data Not Ready!" in p for p in parts):
+                        self._log(
+                            f"Messung -> partielles 'Data Not Ready!' in '{val}', Wiederholung ({attempt + 1}/{self.FETCH_RETRIES})..."
+                        )
+                        time.sleep(self.FETCH_RETRY_DELAY)
+                        continue
+
+                    if len(parts) >= 2:
+                        try:
+                            p, s = float(parts[0]), float(parts[1])
+                            self._log(f"Messung (String) -> p={p}, s={s}")
+                            return p, s
+                        except (ValueError, TypeError) as e:
+                            self._log(f"Parse-Fehler: {e} in '{val}'")
+                            time.sleep(self.FETCH_RETRY_DELAY)
+                            continue
+
+            except (AttributeError, ValueError, TypeError) as e:
+                self._log(f"Messfehler: {e}")
+                time.sleep(self.FETCH_RETRY_DELAY)
+                continue
 
         self._log("Alle Messversuche fehlgeschlagen")
         return None, None
