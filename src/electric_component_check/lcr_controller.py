@@ -14,12 +14,13 @@ Features:
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
+from datetime import datetime
 from importlib import resources
 from pathlib import Path
-from typing import Optional, Literal, Tuple, Dict, Any, List, Callable
-from datetime import datetime
+from typing import Any, Literal
 
-from PySide6.QtCore import QObject, Signal, QTimer, Slot
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 try:
     from .voltcraft_lcr500 import LCR500
@@ -36,6 +37,7 @@ def _default_spec_path() -> resources.abc.Traversable:
     package may be loaded from a zipped wheel; both support ``.open()``.
     """
     return resources.files(__package__) / "vcr_uncertainties.json"
+
 
 # Type Definitions
 Component = Literal["capacitor", "inductor", "resistor"]
@@ -55,7 +57,7 @@ def load_spec_json(path: Path | resources.abc.Traversable) -> dict:
         return json.load(f)
 
 
-def component_to_meastype(component: Component) -> Tuple[MeasType, str, str]:
+def component_to_meastype(component: Component) -> tuple[MeasType, str, str]:
     """Mappt Bauteiltyp auf (meas_type, primary_name, secondary_name)."""
     if component == "capacitor":
         return "capacitance", "C", "D"
@@ -100,9 +102,7 @@ class LCR500HardwareController:
             raise ValueError("Resource-String ist erforderlich!")
 
         if LCR500 is None:
-            raise RuntimeError(
-                "PyMeasure LCR500 ist nicht verfügbar! Installiere pymeasure."
-            )
+            raise RuntimeError("PyMeasure LCR500 ist nicht verfügbar! Installiere pymeasure.")
 
         try:
             self.dev = LCR500(self.resource)
@@ -119,7 +119,7 @@ class LCR500HardwareController:
             return True
         except Exception as e:
             self._log(f"Verbindungsfehler: {e}")
-            raise RuntimeError(f"Verbindung zu LCR500 fehlgeschlagen: {e}")
+            raise RuntimeError(f"Verbindung zu LCR500 fehlgeschlagen: {e}") from e
 
     def disconnect(self) -> None:
         """Trennt die Verbindung."""
@@ -165,7 +165,7 @@ class LCR500HardwareController:
         """Setzt die Messfrequenz und verifiziert die Einstellung."""
         if hasattr(self.dev, "frequency"):
             try:
-                setattr(self.dev, "frequency", freq_hz)
+                self.dev.frequency = freq_hz
                 time.sleep(self.SETTLE_TIME)
 
                 if self._verify_setting("frequency", freq_hz):
@@ -179,29 +179,33 @@ class LCR500HardwareController:
                 return False
         return False
 
-    def set_voltage(self, level_v: float) -> bool:
-        """Setzt die Anregungsspannung und verifiziert die Einstellung."""
-        # PyMeasure-Treiber mit mVrms-Level
+    def set_level(self, level_mv: int) -> bool:
+        """Setzt die Anregungsspannung in mVrms und verifiziert die Einstellung.
+
+        Das Gerät akzeptiert ausschließlich 300 oder 600 mVrms (siehe
+        voltcraft_lcr500._LEVELS_MVRMS); alles andere ist ein Aufrufer-Fehler,
+        kein Grund, still auf den nächstgelegenen erlaubten Wert umzuschalten.
+        """
+        if level_mv not in (300, 600):
+            raise ValueError(f"Ungültiger Spannungspegel: {level_mv} mV (erlaubt: 300, 600)")
+
         if hasattr(self.dev, "level"):
             try:
-                mv = int(round(level_v * 1000.0))
-                allowed = [300, 600]
-                mv_set = min(allowed, key=lambda a: abs(a - mv))
-                setattr(self.dev, "level", mv_set)
+                self.dev.level = level_mv
                 time.sleep(self.SETTLE_TIME)
 
-                if self._verify_setting("level", mv_set):
-                    self._log(f"Spannungspegel (mVrms) gesetzt -> {mv_set} [OK]")
+                if self._verify_setting("level", level_mv):
+                    self._log(f"Spannungspegel (mVrms) gesetzt -> {level_mv} [OK]")
                     return True
                 else:
-                    self._log(f"Spannungspegel setzen -> {mv_set} [FEHLER]")
+                    self._log(f"Spannungspegel setzen -> {level_mv} [FEHLER]")
                     return False
             except (ValueError, TypeError, AttributeError) as e:
                 self._log(f"Fehler beim Setzen des Pegels: {e}")
                 return False
         return False
 
-    def set_equiv(self, mode: Optional[str]) -> bool:
+    def set_equiv(self, mode: str | None) -> bool:
         """Setzt den Ersatzschaltkreis-Modus und verifiziert die Einstellung."""
         if not mode:
             return False
@@ -224,12 +228,12 @@ class LCR500HardwareController:
                     self._log(f"Fehler beim Setzen des EQUIV-Modus: {e}")
         return False
 
-    def fetch_measurement(self) -> Tuple[Optional[float], Optional[float]]:
+    def fetch_measurement(self) -> tuple[float | None, float | None]:
         """Liest Messwerte mit Retry-Logik bei 'Data Not Ready!'."""
         for attempt in range(self.FETCH_RETRIES):
             try:
                 time.sleep(self.FETCH_RETRY_DELAY)
-                val = getattr(self.dev, "fetch")
+                val = self.dev.fetch
                 self._log(f"Messung Versuch {attempt + 1}: {val}")
 
                 # Listen-Rückgabe
@@ -260,11 +264,7 @@ class LCR500HardwareController:
                 elif isinstance(val, str):
                     # Check auf "Data Not Ready!"
                     if "Data Not Ready!" in val or val.strip() == "":
-                        msg = (
-                            "'Data Not Ready!'"
-                            if "Data Not Ready!" in val
-                            else "leerer String"
-                        )
+                        msg = "'Data Not Ready!'" if "Data Not Ready!" in val else "leerer String"
                         self._log(
                             f"Messung -> {msg}, Wiederholung ({attempt + 1}/{self.FETCH_RETRIES})..."
                         )
@@ -343,11 +343,7 @@ class LCR500HardwareController:
         """Aktiviert/deaktiviert Auto-Range."""
         if hasattr(self.dev, "measurement_range"):
             try:
-                setattr(
-                    self.dev,
-                    "measurement_range",
-                    "AUTO" if enable else getattr(self.dev, "measurement_range"),
-                )
+                self.dev.measurement_range = "AUTO" if enable else self.dev.measurement_range
                 time.sleep(self.SETTLE_TIME)
                 self._log(f"Auto-Range -> {enable}")
                 return
@@ -383,10 +379,15 @@ class LCRController(QObject):
     status_message = Signal(str, str, int)
     # Verbindungsspezifischer Status (nur für UI-Label)
     status_changed = Signal(str)
+    # Sweep-Fortschritt (für eine Progress-Anzeige; ersetzt die häufigen
+    # status_message-Aufrufe während measure_sweep als dedizierten Kanal)
+    sweep_started = Signal(int)  # total Messpunkte
+    sweep_progress = Signal(int, int, str)  # done, total, Beschriftung
+    sweep_finished = Signal(int, int)  # erfolgreiche Punkte, total
 
     def __init__(
         self,
-        spec_path: Optional[Path] = None,
+        spec_path: Path | None = None,
         check_interval_ms: int = 5000,
         debug: bool = False,
     ):
@@ -402,7 +403,7 @@ class LCRController(QObject):
 
         self.spec_path = spec_path if spec_path is not None else _default_spec_path()
         self.debug = debug
-        self._hw_controller: Optional[LCR500HardwareController] = None
+        self._hw_controller: LCR500HardwareController | None = None
         self._is_measuring = False
 
         # Lade Unsicherheitsspezifikation
@@ -511,24 +512,22 @@ class LCRController(QObject):
             # Verbindungsetikett
             self.status_changed.emit("Verbindung verloren")
             # Transiente Warnung
-            self.status_message.emit(
-                "Verbindung zum LCR-Gerät verloren", "warning", 5000
-            )
+            self.status_message.emit("Verbindung zum LCR-Gerät verloren", "warning", 5000)
             self._hw_controller = None
 
     def measure_single(
         self,
         component: Component,
         frequency_hz: int,
-        voltage_v: float = 0.6,
-    ) -> Optional[Dict[str, Any]]:
+        level_mv: int = 600,
+    ) -> dict[str, Any] | None:
         """
         Führt eine einzelne Messung durch.
 
         Args:
             component: Bauteiltyp (capacitor, inductor, resistor)
             frequency_hz: Messfrequenz in Hz
-            voltage_v: Anregungsspannung in Vrms
+            level_mv: Anregungsspannung in mVrms (nur 300 oder 600 erlaubt)
 
         Returns:
             Dictionary mit Messdaten oder None bei Fehler
@@ -549,7 +548,7 @@ class LCRController(QObject):
 
             # Frequenz und Spannung setzen
             self._hw_controller.set_frequency(frequency_hz)
-            self._hw_controller.set_voltage(voltage_v)
+            self._hw_controller.set_level(level_mv)
 
             # Auto-Range aktivieren
             self._hw_controller.enable_auto_range(True)
@@ -579,16 +578,15 @@ class LCRController(QObject):
                             primary_val, frequency_hz
                         )
                 except (ValueError, KeyError) as e:
-                    self._log(
-                        f"Warnung: Unsicherheit konnte nicht berechnet werden: {e}"
-                    )
+                    self._log(f"Warnung: Unsicherheit konnte nicht berechnet werden: {e}")
 
             # Messdaten zusammenstellen
             measurement = {
                 "timestamp": datetime.now().isoformat(),
                 "component": component,
                 "frequency_hz": frequency_hz,
-                "voltage_v": voltage_v,
+                "level_mv": level_mv,
+                "voltage_v": level_mv / 1000.0,  # für Report/Plot-Kompatibilität
                 "primary_name": primary_name,
                 "primary_value": primary_val,
                 "primary_uncertainty": u_primary,
@@ -597,9 +595,7 @@ class LCRController(QObject):
                 "secondary_uncertainty": u_secondary,
             }
 
-            self._log(
-                f"Messung: {primary_name}={primary_val}, {secondary_name}={secondary_val}"
-            )
+            self._log(f"Messung: {primary_name}={primary_val}, {secondary_name}={secondary_val}")
             self.measurement_ready.emit(measurement)
 
             return measurement
@@ -615,17 +611,17 @@ class LCRController(QObject):
     def measure_sweep(
         self,
         component: Component,
-        frequencies_hz: Optional[List[int]] = None,
-        voltage_levels: Optional[List[int]] = None,
-        stop_flag: Optional[Callable[[], bool]] = None,
-    ) -> List[Dict[str, Any]]:
+        frequencies_hz: list[int] | None = None,
+        voltage_levels_mv: list[int] | None = None,
+        stop_flag: Callable[[], bool] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Führt eine Messreihe über mehrere Frequenzen und Spannungslevel durch.
 
         Args:
             component: Bauteiltyp (capacitor, inductor, resistor)
             frequencies_hz: Liste der Messfrequenzen (None = alle unterstützten)
-            voltage_levels: Liste der Spannungslevel in mV (None = [300, 600])
+            voltage_levels_mv: Liste der Spannungslevel in mVrms (None = [300, 600])
             stop_flag: Optional callback, der True zurückgibt wenn abgebrochen werden soll
 
         Returns:
@@ -640,22 +636,23 @@ class LCRController(QObject):
             meas_type, _, _ = component_to_meastype(component)
             frequencies_hz = self._get_supported_frequencies(meas_type)
 
-        # Standard: Zwei Spannungslevel in mV
-        if voltage_levels is None:
-            voltage_levels = [300, 600]
+        # Standard: beide vom Gerät unterstützten Spannungslevel
+        if voltage_levels_mv is None:
+            voltage_levels_mv = [300, 600]
 
         measurements = []
-        total = len(frequencies_hz) * len(voltage_levels)
+        total = len(frequencies_hz) * len(voltage_levels_mv)
         count = 0
 
         self.status_message.emit(
-            f"Starte Messreihe: {len(frequencies_hz)} Frequenzen × {len(voltage_levels)} Spannungen",
+            f"Starte Messreihe: {len(frequencies_hz)} Frequenzen × {len(voltage_levels_mv)} Spannungen",
             "info",
             2000,
         )
+        self.sweep_started.emit(total)
 
-        for voltage_mv in voltage_levels:
-            for idx, freq in enumerate(frequencies_hz, 1):
+        for level_mv in voltage_levels_mv:
+            for freq in frequencies_hz:
                 count += 1
                 # Prüfe, ob abgebrochen werden soll
                 if stop_flag and stop_flag():
@@ -664,15 +661,12 @@ class LCRController(QObject):
                         "warning",
                         3000,
                     )
+                    self.sweep_finished.emit(len(measurements), total)
                     return measurements
 
-                self.status_message.emit(
-                    f"Messung {count}/{total}: {freq} Hz @ {voltage_mv}mV",
-                    "info",
-                    1500,
-                )
+                self.sweep_progress.emit(count, total, f"{freq} Hz @ {level_mv}mV")
 
-                result = self.measure_single(component, freq, voltage_mv)
+                result = self.measure_single(component, freq, level_mv)
                 if result:
                     # Validiere Werte gegen extrem große Zahlen
                     primary_val = result.get("primary_value")
@@ -697,10 +691,11 @@ class LCRController(QObject):
                 "success",
                 3000,
             )
+            self.sweep_finished.emit(len(measurements), total)
 
         return measurements
 
-    def _get_supported_frequencies(self, meas_type: MeasType) -> List[int]:
+    def _get_supported_frequencies(self, meas_type: MeasType) -> list[int]:
         """Extrahiert alle unterstützten Messfrequenzen aus der Spezifikation."""
         if meas_type not in self.spec_json:
             # Fallback auf Standard-Frequenzen
@@ -715,7 +710,7 @@ class LCRController(QObject):
                     continue
         return sorted(freqs)
 
-    def get_device_info(self) -> Optional[Dict[str, str]]:
+    def get_device_info(self) -> dict[str, str] | None:
         """
         Gibt Geräteinformationen zurück.
 
@@ -742,15 +737,19 @@ class LCRMeasurementWorker(QObject):
 
     def __init__(
         self,
-        controller: "LCRController",
+        controller: LCRController,
         component: Component,
         measurement_name: str,
-        parent: Optional[QObject] = None,
+        frequencies_hz: list[int] | None = None,
+        voltage_levels_mv: list[int] | None = None,
+        parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self._controller = controller
         self._component = component
         self._measurement_name = measurement_name
+        self._frequencies_hz = frequencies_hz
+        self._voltage_levels_mv = voltage_levels_mv
         self._stop_requested = False
 
     def stop(self) -> None:
@@ -762,7 +761,10 @@ class LCRMeasurementWorker(QObject):
         self.started.emit(self._measurement_name)
         try:
             results = self._controller.measure_sweep(
-                self._component, stop_flag=self._is_stop_requested
+                self._component,
+                frequencies_hz=self._frequencies_hz,
+                voltage_levels_mv=self._voltage_levels_mv,
+                stop_flag=self._is_stop_requested,
             )
         except Exception as exc:  # noqa: BLE001 - Fehler weiterreichen
             if self._stop_requested:

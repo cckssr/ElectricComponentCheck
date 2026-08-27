@@ -1,16 +1,26 @@
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
+import platformdirs
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from pyvisa import ResourceManager
 
-from .config import AppConfig, get_config
+from .config import APP_AUTHOR, APP_NAME, AppConfig, get_config
 from .lcr_controller import LCRController, LCRMeasurementWorker
+from .measurement_summary import (
+    SweepSummary,
+    summarise,
+    to_dataframe,
+    to_openbis_properties,
+    write_csv,
+)
 from .openbis_controller import ComponentSaveRequest, OpenBISController, OpenBISUploadWorker
 from .plot_controller import PlotController
+from .report_generator import MeasurementReport
 from .ui.calibration_ui import Ui_Dialog as Ui_CalibrationDialog
 from .ui.form_ui import Ui_MainWindow
 
@@ -32,6 +42,11 @@ class MainWindow(QMainWindow):
         self._measurement_thread: QtCore.QThread | None = None
         self._measurement_worker: LCRMeasurementWorker | None = None
         self._current_measurement_name: str | None = None
+
+        # Ergebnis der letzten abgeschlossenen Messung (für den Upload)
+        self._last_results: list[dict[str, Any]] = []
+        self._last_summary: SweepSummary | None = None
+        self._last_report_path: Path | None = None
 
         # Statusflags für den OpenBIS-Upload
         self._upload_thread: QtCore.QThread | None = None
@@ -168,6 +183,8 @@ class MainWindow(QMainWindow):
             self.lcr_controller,
             component,
             self._current_measurement_name,
+            frequencies_hz=list(self.config.measurement.frequencies_hz),
+            voltage_levels_mv=list(self.config.measurement.voltage_levels_mv),
         )
         self._measurement_worker.moveToThread(self._measurement_thread)
 
@@ -206,6 +223,10 @@ class MainWindow(QMainWindow):
     ) -> None:
         """Wird aufgerufen, wenn die Messung erfolgreich beendet wurde."""
         self._measurement_running = False
+        self._last_results = results
+        self._last_summary = None
+        self._last_report_path = None
+
         if results:
             self.plot_controller.finish_measurement(results)
             self._show_status(
@@ -213,7 +234,9 @@ class MainWindow(QMainWindow):
                 level="success",
                 duration_ms=4000,
             )
+            self._build_measurement_report(measurement_name, results)
         else:
+            self.ui.lcr_statistics.setText("")
             self._show_status(
                 "Messung abgeschlossen, aber keine Daten erhalten",
                 level="warning",
@@ -221,6 +244,81 @@ class MainWindow(QMainWindow):
             )
 
         self._update_lcr_measurement_state()
+
+    def _build_measurement_report(
+        self, measurement_name: str, results: list[dict[str, Any]]
+    ) -> None:
+        """Reduziert die Messreihe auf einen Referenzwert und erzeugt das PDF-Protokoll.
+
+        Speichert das Ergebnis in self._last_summary/_last_report_path zur
+        Verwendung beim Upload; schlägt ein einzelner Schritt fehl, bricht
+        nur die Report-Erstellung ab, nicht die (bereits abgeschlossene) Messung.
+        """
+        component = self._get_selected_component()
+        if component is None:
+            return
+
+        instrument_id = None
+        if self.lcr_controller and self.lcr_controller.is_connected():
+            device_info = self.lcr_controller.get_device_info()
+            instrument_id = device_info.get("id") if device_info else None
+
+        try:
+            ref = self.config.reference_for(component)
+            summary = summarise(
+                results,
+                component,
+                ref,
+                instrument_id=instrument_id,
+                calibration_open=self._calibration_open_done,
+                calibration_short=self._calibration_short_done,
+            )
+            self._last_summary = summary
+
+            df = to_dataframe(results, summary.primary_name, summary.secondary_name)
+            reports_dir = Path(platformdirs.user_cache_dir(APP_NAME, APP_AUTHOR)) / "reports"
+            report_path = reports_dir / f"{measurement_name}.pdf"
+            # CSV-Sidecar: bleibt erhalten, selbst wenn der Upload später fehlschlägt.
+            write_csv(df, reports_dir / f"{measurement_name}.csv")
+            barcode = self.ui.barcode.text().strip()
+            metadata = {
+                "general": {
+                    "barcode": barcode,
+                    "component": component,
+                    "manufacturer": self.ui.manufacturer.text(),
+                },
+                "openbis": {
+                    "referenzpunkt": (
+                        f"{summary.reference_frequency_hz} Hz @ "
+                        f"{summary.reference_level_mv} mV"
+                        + ("" if summary.reference_exact else " (nächstgelegener Messpunkt)")
+                    ),
+                    "messgerät": instrument_id or "unbekannt",
+                    "kalibrierung_open": str(self._calibration_open_done),
+                    "kalibrierung_short": str(self._calibration_short_done),
+                },
+            }
+            MeasurementReport(df, metadata).build(report_path, title=f"Messprotokoll – {barcode}")
+            self._last_report_path = report_path
+
+            unit_props = to_openbis_properties(summary, self.config.measurement_properties)
+            if summary.primary_value is not None:
+                scaled_value = unit_props.get(self.config.measurement_properties.value)
+                unit = unit_props.get(self.config.measurement_properties.unit, "")
+                self.ui.lcr_statistics.setText(
+                    f"{summary.primary_name} = {scaled_value:.4g} {unit} "
+                    f"@ {summary.reference_frequency_hz} Hz / "
+                    f"{summary.reference_level_mv} mV -- {summary.n_points}/"
+                    f"{summary.n_expected} Punkte"
+                )
+            else:
+                self.ui.lcr_statistics.setText("Kein Referenzpunkt in der Messreihe gefunden")
+        except Exception as e:  # noqa: BLE001 - Report-Erstellung darf nie die Messung crashen
+            self._show_status(
+                f"Mess-Protokoll konnte nicht erstellt werden: {e}",
+                level="warning",
+                duration_ms=6000,
+            )
 
     def _on_measurement_failed(self, error: str) -> None:
         """Reagiert auf Fehler im Mess-Thread."""
@@ -607,10 +705,24 @@ class MainWindow(QMainWindow):
             device_info = self.lcr_controller.get_device_info()
             instrument_id = device_info.get("id") if device_info else None
 
+        # Ergebnis der letzten Messung (falls vorhanden) in den Upload einbeziehen:
+        # Referenzwert/Unsicherheit/Einheit/Datum in die Properties, PDF+CSV als
+        # CALI_CERT-Dataset. Ein Upload ohne vorherige Messung bleibt möglich
+        # (reine Metadaten-Aktualisierung).
+        report_path = None
+        if self._last_summary is not None:
+            properties.update(
+                to_openbis_properties(self._last_summary, self.config.measurement_properties)
+            )
+            if self._last_summary.instrument_id:
+                instrument_id = self._last_summary.instrument_id
+            report_path = self._last_report_path
+
         request = ComponentSaveRequest(
             barcode=obj_code,
             properties=properties,
             object_permid=obj_permid or None,
+            report_path=report_path,
             instrument_id=instrument_id,
         )
 
