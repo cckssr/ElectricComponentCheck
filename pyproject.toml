@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -36,29 +36,48 @@ dependencies = [
     "numpy",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.0",
+    "pytest>=8.0",
     "pytest-cov",
-    "black",
-    "flake8",
+    "ruff",
     "mypy",
+    "pre-commit",
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/ElectricComponentCheck"
-Documentation = "https://github.com/yourusername/ElectricComponentCheck#readme"
-Repository = "https://github.com/yourusername/ElectricComponentCheck.git"
-Issues = "https://github.com/yourusername/ElectricComponentCheck/issues"
+Homepage = "https://github.com/cckssr/ElectricComponentCheck"
+Documentation = "https://github.com/cckssr/ElectricComponentCheck#readme"
+Repository = "https://github.com/cckssr/ElectricComponentCheck.git"
+Issues = "https://github.com/cckssr/ElectricComponentCheck/issues"
 
 [project.scripts]
-electric-component-check = "mainwindow:main"
+electric-component-check = "electric_component_check.mainwindow:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["electric_component_check*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.json", "*.ui"]
+electric_component_check = ["*.json", "*.toml", "ui/*.ui"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+exclude = ["^test/"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+pythonpath = ["src"]

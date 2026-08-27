@@ -1,56 +1,48 @@
-# ElectricComponentCheck: LCR-Unsicherheiten
+# ElectricComponentCheck
 
-Dieses Modul berechnet Messunsicherheiten für LCR-Messungen (Kapazität, Induktivität,
-Impedanz, D und Phasenwinkel) auf Basis einer JSON-Spezifikation.
+A PySide6 desktop app for a single workflow: **plug an electrical component into a
+Voltcraft LCR-500 meter, scan its barcode, and record it in [OpenBIS](https://openbis.ch/)** —
+either creating a new `ELEKTRONISCHES_BAUTEIL` object or updating an existing one, complete
+with measured values and a generated PDF certificate. Built for the TU Berlin physics lab.
 
-## JSON-Struktur (Kurzfassung)
+## What it does
 
-- Top-Level-Schlüssel: `capacitance`, `inductance`, `impedance`
-- Je Type: mehrere Frequenz-Blöcke, z. B. `"10k"`, `"1k_4k"`, jeder mit
-  - `freqs_Hz`: Liste der Frequenzen (z. B. `[10000]`)
-  - `ranges`: Liste von Bereichen mit Eigenschaften, z. B.:
-    - `min`, `max`, `unit` (z. B. `"µF"`, `"nF"`, `"Ω"`, `"kΩ"`, `"MΩ"`)
-    - `resolution` (Anzeigeauflösung)
-    - Fehlerparameter pro Typ:
-      - C: `Ce_pct`, `Ce_digits`, optional `De_abs`, `equiv`
-      - L: `Le_pct`, `Le_digits`, optional `De_abs`, `equiv`
-      - Z: `Ze_pct`, `Ze_digits`, optional `theta_deg`, `equiv`
+1. Connect to OpenBIS with a session token and to the LCR-500 over VISA.
+2. Scan or type a component's barcode.
+   - **Known barcode** → the object's current properties load into the form.
+   - **Unknown barcode** → a new object is prepared, ready to create.
+3. Fill in or correct manufacturer, status, and type-specific fields (capacitor, resistor,
+   inductor, transistor, switch, fuse).
+4. Run the full LCR sweep (all specified frequencies, both drive levels). Progress is shown
+   live; a plot updates as points come in.
+5. Upload: writes the measured reference value + uncertainty into the object's properties
+   and attaches a PDF report as a `CALI_CERT` dataset.
+6. The form resets and focus returns to the barcode field — ready for the next component.
 
-## Unterstützte Einheiten
+## Requirements
 
-Das Modul akzeptiert sowohl ASCII- als auch Unicode-Varianten:
+- Python 3.11+
+- A Voltcraft LCR-500 reachable over VISA (USB or serial)
+- An OpenBIS server and a valid session token
 
-- Ohm: `Ohm`, `Ω`, `kOhm`, `kΩ`, `MOhm`, `MΩ`
-- Kapazität: `F`, `mF`, `uF`, `µF`, `nF`, `pF`
-- Induktivität: `H`, `mH`, `uH`, `µH`, `nH`
+See [INSTALL.md](INSTALL.md) to get set up.
 
-## Nutzung
+## Measurement uncertainty module
+
+`electric_component_check.vcr_uncertainties` computes measurement uncertainties for LCR
+readings (capacitance, inductance, impedance, D, and phase angle) from a JSON spec
+(`vcr_uncertainties.json`), independent of the GUI:
 
 ```python
-from pathlib import Path
-from vcr_uncertainties import MeasurementError
+from electric_component_check.vcr_uncertainties import MeasurementError
 
 spec = MeasurementError(Path("vcr_uncertainties.json"))
-
-# Beispiel: Kapazität
 uC, uD, r = spec.uncertainty_capacitance(C_SI=1e-6, freq_hz=10000)
-print("uC, uD:", uC, uD)
-print("Verwendeter Bereich:", r)
-
-# EQUIV-Modus
-mode = spec.find_equiv_mode("capacitance", value_SI=1e-6, freq_hz=10000)
-print("EQUIV:", mode)
 ```
 
-## Tests
+Supported units (ASCII and Unicode): `Ohm`/`Ω`, `kOhm`/`kΩ`, `MOhm`/`MΩ`, `F`/`mF`/`uF`/`µF`/`nF`/`pF`,
+`H`/`mH`/`uH`/`µH`/`nH`.
 
-```bash
-python -m unittest -v test_measurementerror.py
-# oder
-pytest -q
-```
+## Development
 
-## Hinweise
-
-- Wird ein Wert außerhalb aller Anzeigebereiche übergeben, wird ein `ValueError` geworfen.
-- Für `q_rel_error` gilt die Bedingung `Qx*De < 1`.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for building, testing, and releasing.

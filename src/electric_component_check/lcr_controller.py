@@ -14,6 +14,7 @@ Features:
 from __future__ import annotations
 
 import time
+from importlib import resources
 from pathlib import Path
 from typing import Optional, Literal, Tuple, Dict, Any, List, Callable
 from datetime import datetime
@@ -21,11 +22,20 @@ from datetime import datetime
 from PySide6.QtCore import QObject, Signal, QTimer, Slot
 
 try:
-    from voltcraft_lcr500 import LCR500
+    from .voltcraft_lcr500 import LCR500
 except ImportError:
     LCR500 = None
 
-from vcr_uncertainties import MeasurementError
+from .vcr_uncertainties import MeasurementError
+
+
+def _default_spec_path() -> resources.abc.Traversable:
+    """Resolve the packaged uncertainty spec, whether run from source or installed.
+
+    Returns a Traversable rather than a concrete filesystem Path since the
+    package may be loaded from a zipped wheel; both support ``.open()``.
+    """
+    return resources.files(__package__) / "vcr_uncertainties.json"
 
 # Type Definitions
 Component = Literal["capacitor", "inductor", "resistor"]
@@ -37,7 +47,7 @@ MeasType = Literal["capacitance", "inductance", "impedance"]
 # ============================================================================
 
 
-def load_spec_json(path: Path) -> dict:
+def load_spec_json(path: Path | resources.abc.Traversable) -> dict:
     """Lädt die Unsicherheitsspezifikation aus JSON-Datei."""
     import json
 
@@ -376,7 +386,7 @@ class LCRController(QObject):
 
     def __init__(
         self,
-        spec_path: Path = Path(__file__).parent / "vcr_uncertainties.json",
+        spec_path: Optional[Path] = None,
         check_interval_ms: int = 5000,
         debug: bool = False,
     ):
@@ -384,13 +394,13 @@ class LCRController(QObject):
         Initialisiert den LCR-Controller.
 
         Args:
-            spec_path: Pfad zur Unsicherheitsspezifikation
+            spec_path: Pfad zur Unsicherheitsspezifikation (Standard: mitgelieferte Spec)
             check_interval_ms: Intervall für Verbindungsüberwachung (Millisekunden)
             debug: Debug-Modus aktivieren
         """
         super().__init__()
 
-        self.spec_path = spec_path
+        self.spec_path = spec_path if spec_path is not None else _default_spec_path()
         self.debug = debug
         self._hw_controller: Optional[LCR500HardwareController] = None
         self._is_measuring = False

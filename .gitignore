@@ -23,7 +23,9 @@ tags
 .DS_Store
 .directory
 *.debug
-Makefile*
+# qmake-generated makefiles (subdir Makefiles); the hand-written repo-root
+# Makefile is tracked deliberately.
+*/Makefile*
 *.prl
 *.app
 moc_*.cpp
@@ -67,6 +69,17 @@ CMakeLists.txt.user*
 # Python byte code
 *.pyc
 *.egg-info
+__pycache__/
+
+# Python packaging / tooling artifacts
+/dist/
+/build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+report.pdf
 
 # Binaries
 # --------

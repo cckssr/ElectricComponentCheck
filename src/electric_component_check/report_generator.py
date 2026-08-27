@@ -21,7 +21,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import matplotlib.pyplot as plt
-from plot_measurement import MeasurementPlotter
+from .plot_measurement import MeasurementPlotter
 
 
 class MeasurementReport:

@@ -1,10 +1,9 @@
 include README.md
 include LICENSE
-include requirements.txt
 include metadata_example.json
-recursive-include src *.json
-recursive-include src *.ui
-recursive-include src/ui *.ui
+recursive-include src/electric_component_check *.json
+recursive-include src/electric_component_check *.toml
+recursive-include src/electric_component_check/ui *.ui
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 recursive-exclude * *.so

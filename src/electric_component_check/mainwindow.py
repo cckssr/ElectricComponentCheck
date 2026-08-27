@@ -3,17 +3,16 @@ import sys
 import re
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pathlib import Path
 from pyvisa import ResourceManager
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PySide6 import QtWidgets, QtCore
 
-from ui.form_ui import Ui_MainWindow
-from ui.calibration_ui import Ui_Dialog as Ui_CalibrationDialog
-from openbis_controller import OpenBISController
-from lcr_controller import LCRController, LCRMeasurementWorker
-from plot_controller import PlotController
+from .ui.form_ui import Ui_MainWindow
+from .ui.calibration_ui import Ui_Dialog as Ui_CalibrationDialog
+from .openbis_controller import OpenBISController
+from .lcr_controller import LCRController, LCRMeasurementWorker
+from .plot_controller import PlotController
 
 SERVER_URL = "https://openbis.physik.tu-berlin.de"
 
@@ -268,11 +267,7 @@ class MainWindow(QMainWindow):
             self.lcr_controller.disconnect_device()
 
         # Erstelle neuen Controller
-        self.lcr_controller = LCRController(
-            spec_path=Path(__file__).parent / "vcr_uncertainties.json",
-            check_interval_ms=5000,
-            debug=True,
-        )
+        self.lcr_controller = LCRController(check_interval_ms=5000, debug=True)
 
         # Verbinde Signale
         self._connect_lcr_signals()

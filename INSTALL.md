@@ -1,56 +1,52 @@
-# ElectricComponentCheck - Quick Start
+# Installation
 
-## Installation
+## Requirements
 
-### Option 1: Von lokalem Verzeichnis
+- Python 3.11 or newer
+- A VISA backend for talking to the LCR-500 — [NI-VISA](https://www.ni.com/en/support/downloads/drivers/download.ni-visa.html)
+  or the pure-Python `pyvisa-py` (installed automatically as a `pyvisa` dependency)
+
+## Install from source
+
 ```bash
-cd /pfad/zum/ElectricComponentCheck
+git clone https://github.com/cckssr/ElectricComponentCheck.git
+cd ElectricComponentCheck
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install .
 ```
 
-### Option 2: Von Git Repository
-```bash
-# Direkt von GitHub/GitLab
-pip install git+https://github.com/yourusername/ElectricComponentCheck.git
+## Development install
 
-# Spezifische Version
-pip install git+https://github.com/yourusername/ElectricComponentCheck.git@v0.1.0
-```
-
-### Option 3: Development Installation
-```bash
-cd /pfad/zum/ElectricComponentCheck
-pip install -e .
-```
-
-## Paket bauen
+Installs the package in editable mode plus lint/type-check/test tooling:
 
 ```bash
-# Build-Tools installieren
-pip install build
-
-# Paket bauen
-python -m build
+pip install -e . --group dev
+pre-commit install
 ```
 
-Dies erstellt die Distribution-Dateien in `dist/`:
-- `electric_component_check-0.1.0.tar.gz` (Source Distribution)
-- `electric_component_check-0.1.0-py3-none-any.whl` (Wheel Distribution)
+(`--group` requires pip 25.1+; on an older pip, install the dev tools listed under
+`[dependency-groups]` in `pyproject.toml` by hand.)
 
-## Anwendung starten
-
-Nach der Installation können Sie die Anwendung starten mit:
+## Running
 
 ```bash
 electric-component-check
+# or
+python -m electric_component_check
 ```
 
-Oder mit Python:
+On first launch, enter an OpenBIS session token and pick the LCR-500's VISA resource from
+the dropdown (refresh if it isn't listed yet).
+
+## Building a distributable package
 
 ```bash
-python -m mainwindow
+pip install build
+python -m build
 ```
 
-## Weitere Informationen
+Produces `dist/electric_component_check-<version>-py3-none-any.whl` and a matching
+source distribution. Install the wheel elsewhere with `pip install dist/*.whl`.
 
-Siehe `BUILD.md` für detaillierte Anweisungen zur Distribution und Veröffentlichung.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the full development, testing, and release workflow.

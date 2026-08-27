@@ -24,12 +24,12 @@ from pathlib import Path
 from typing import Optional, Literal, Tuple, Dict, Any, List, Type
 
 try:
-    from voltcraft_lcr500 import LCR500
+    from .voltcraft_lcr500 import LCR500
 except ImportError:
     LCR500 = None
     print("WARN: PyMeasure oder LCR500-Treiber nicht verfügbar, nutze Simulation.")
 
-from vcr_uncertainties import MeasurementError
+from .vcr_uncertainties import MeasurementError
 
 
 # ============================================================================
