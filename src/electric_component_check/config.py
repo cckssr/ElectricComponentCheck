@@ -16,11 +16,12 @@ from __future__ import annotations
 import json
 import os
 import tomllib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import platformdirs
 

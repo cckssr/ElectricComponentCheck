@@ -73,7 +73,10 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.11"
+# numpy's bundled stubs use PEP 695 `type` statements unconditionally, which
+# mypy can only parse at python_version >= 3.12 -- even though the app itself
+# supports 3.11+. Pinning lower breaks type-checking on any numpy import.
+python_version = "3.12"
 ignore_missing_imports = true
 warn_unused_ignores = true
 exclude = ["^test/"]

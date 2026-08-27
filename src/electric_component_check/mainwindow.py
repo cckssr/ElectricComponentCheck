@@ -1,40 +1,41 @@
-# This Python file uses the following encoding: utf-8
-import sys
 import re
+import sys
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Any
+
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from pyvisa import ResourceManager
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PySide6 import QtWidgets, QtCore
-
-from .ui.form_ui import Ui_MainWindow
-from .ui.calibration_ui import Ui_Dialog as Ui_CalibrationDialog
-from .openbis_controller import OpenBISController
+from .config import AppConfig, get_config
 from .lcr_controller import LCRController, LCRMeasurementWorker
+from .openbis_controller import ComponentSaveRequest, OpenBISController, OpenBISUploadWorker
 from .plot_controller import PlotController
-
-SERVER_URL = "https://openbis.physik.tu-berlin.de"
+from .ui.calibration_ui import Ui_Dialog as Ui_CalibrationDialog
+from .ui.form_ui import Ui_MainWindow
 
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.openbis_controller: Optional[OpenBISController] = None
-        self.lcr_controller: Optional[LCRController] = None
-        self.current_object_data: Optional[dict] = (
-            None  # Speichert aktuelle Objektdaten
-        )
-        self.initial_field_values: Dict[str, Any] = {}  # Speichert initiale Feldwerte
+        self.config: AppConfig = get_config()
+        self.openbis_controller: OpenBISController | None = None
+        self.lcr_controller: LCRController | None = None
+        self.current_object_data: dict | None = None  # Speichert aktuelle Objektdaten
+        self.initial_field_values: dict[str, Any] = {}  # Speichert initiale Feldwerte
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
         # Statusflags für LCR-Integration
         self._lcr_connected = False
         self._measurement_running = False
-        self._measurement_thread: Optional[QtCore.QThread] = None
-        self._measurement_worker: Optional[LCRMeasurementWorker] = None
-        self._current_measurement_name: Optional[str] = None
+        self._measurement_thread: QtCore.QThread | None = None
+        self._measurement_worker: LCRMeasurementWorker | None = None
+        self._current_measurement_name: str | None = None
+
+        # Statusflags für den OpenBIS-Upload
+        self._upload_thread: QtCore.QThread | None = None
+        self._upload_worker: OpenBISUploadWorker | None = None
 
         # Kalibrierungsstatus
         self._calibration_open_done = False
@@ -93,7 +94,7 @@ class MainWindow(QMainWindow):
         if current_type_index >= 0:
             self._update_specific_fields_enabled(current_type_index)
 
-    def _get_selected_component(self) -> Optional[str]:
+    def _get_selected_component(self) -> str | None:
         """Gibt den aktuell messbaren Bauteiltyp zurück."""
         mapping = {0: "resistor", 1: "capacitor", 2: "inductor"}
         index = self.ui.type.currentIndex()
@@ -201,7 +202,7 @@ class MainWindow(QMainWindow):
         )
 
     def _on_measurement_finished(
-        self, measurement_name: str, results: List[Dict[str, Any]]
+        self, measurement_name: str, results: list[dict[str, Any]]
     ) -> None:
         """Wird aufgerufen, wenn die Messung erfolgreich beendet wurde."""
         self._measurement_running = False
@@ -283,9 +284,7 @@ class MainWindow(QMainWindow):
         self.lcr_controller.connected.connect(self._on_lcr_connected)
         self.lcr_controller.disconnected.connect(self._on_lcr_disconnected)
         self.lcr_controller.connection_lost.connect(self._on_lcr_connection_lost)
-        self.lcr_controller.measurement_ready.connect(
-            self.plot_controller.handle_measurement
-        )
+        self.lcr_controller.measurement_ready.connect(self.plot_controller.handle_measurement)
         self.lcr_controller.error_occurred.connect(self._on_lcr_error)
         self.lcr_controller.status_changed.connect(self._on_lcr_status)
         # Transiente Statusmeldungen für Statusbar
@@ -311,9 +310,7 @@ class MainWindow(QMainWindow):
         """LCR-Verbindung verloren."""
         self.ui.lcr_progress.setText("Verbindung verloren!")
         self.ui.lcr_progress.setStyleSheet("color: red;")
-        QMessageBox.warning(
-            self, "Verbindungsfehler", "Verbindung zum LCR-Gerät verloren!"
-        )
+        QMessageBox.warning(self, "Verbindungsfehler", "Verbindung zum LCR-Gerät verloren!")
         self._lcr_connected = False
         self._update_lcr_measurement_state()
         self._update_calibration_button_state()
@@ -403,9 +400,7 @@ class MainWindow(QMainWindow):
             "Sicherung",
         ]
         if 0 <= index < len(type_names):
-            print(
-                f"[MainWindow] Kategorie gewechselt zu: {type_names[index]} (Index {index})"
-            )
+            print(f"[MainWindow] Kategorie gewechselt zu: {type_names[index]} (Index {index})")
 
     def _update_specific_fields_enabled(self, active_index: int):
         """
@@ -470,12 +465,8 @@ class MainWindow(QMainWindow):
 
         # Erstelle OpenBIS-Controller
         if not self.openbis_controller or not self.openbis_controller.is_connected():
-            self.ui.openbis_progress.setText(
-                "Verbindung zu OpenBIS wird hergestellt..."
-            )
-            self.openbis_controller = OpenBISController(
-                server_url=SERVER_URL, debug=True
-            )
+            self.ui.openbis_progress.setText("Verbindung zu OpenBIS wird hergestellt...")
+            self.openbis_controller = OpenBISController(config=self.config, debug=True)
 
             # Verbinde Signale
             self._connect_openbis_signals()
@@ -488,22 +479,17 @@ class MainWindow(QMainWindow):
         if not self.openbis_controller:
             return
 
-        self.openbis_controller.connection_established.connect(
-            self._on_openbis_connected
-        )
+        self.openbis_controller.connection_established.connect(self._on_openbis_connected)
         self.openbis_controller.disconnected.connect(self._on_openbis_disconnected)
         self.openbis_controller.object_found.connect(self._on_openbis_object_found)
-        self.openbis_controller.object_not_found.connect(
-            self._on_openbis_object_not_found
-        )
-        self.openbis_controller.properties_loaded.connect(
-            self._on_openbis_properties_loaded
-        )
+        self.openbis_controller.object_not_found.connect(self._on_openbis_object_not_found)
+        self.openbis_controller.properties_loaded.connect(self._on_openbis_properties_loaded)
         self.openbis_controller.error_occurred.connect(self._on_openbis_error)
         self.openbis_controller.status_changed.connect(self._on_openbis_status)
         # Transiente Statusmeldungen für Statusbar
         self.openbis_controller.status_message.connect(self._on_status_message)
-        # Object updated Signal
+        # Objekt erstellt/aktualisiert
+        self.openbis_controller.object_created.connect(self._on_openbis_object_created)
         self.openbis_controller.object_updated.connect(self._on_openbis_object_updated)
 
     def _on_openbis_connected(self, info: str):
@@ -534,12 +520,16 @@ class MainWindow(QMainWindow):
         self.ui.openbis_upload.setEnabled(True)
 
     def _on_openbis_object_not_found(self, code: str):
-        """OpenBIS-Objekt nicht gefunden."""
+        """OpenBIS-Objekt nicht gefunden -- bereitet die Neuanlage vor."""
         error_msg = f"Objekt '{code}' nicht gefunden"
         self._show_status(error_msg, level="warning", duration_ms=6000)
         self.ui.object_status.setCurrentText("Neues Objekt")
+        # Neues Objekt vormerken, damit der Upload-Button die Create-Route nimmt
+        self.initial_field_values.clear()
+        self.current_object_data = {"code": code, "permId": None, "properties": {}}
         # Alle Felder aktivieren (inkl. type)
         self._set_general_fields_enabled(True, enable_type=True)
+        self.ui.openbis_upload.setEnabled(True)
 
     def _on_openbis_properties_loaded(self, properties: dict):
         """OpenBIS-Properties geladen."""
@@ -573,7 +563,13 @@ class MainWindow(QMainWindow):
         # Transiente Meldung erfolgt durch Controller
 
     def _on_openbis_save_clicked(self):
-        """Wird aufgerufen, wenn der Save-Button geklickt wird."""
+        """Wird aufgerufen, wenn der Upload-Button geklickt wird.
+
+        Erstellt oder aktualisiert das Objekt (je nachdem, ob eine permId
+        bekannt ist) über OpenBISController.save_component(), ausgeführt in
+        einem Hintergrund-Thread, damit die GUI während der HTTPS-Requests
+        nicht einfriert.
+        """
         if not self.openbis_controller or not self.openbis_controller.is_connected():
             QMessageBox.warning(
                 self,
@@ -590,14 +586,14 @@ class MainWindow(QMainWindow):
             )
             return
 
-        # Sammle alle geänderten Properties aus der UI
-        properties = self._collect_properties_from_ui()
+        if self._upload_thread is not None:
+            # Ein Upload läuft bereits.
+            return
 
-        # Rufe update_object auf
         obj_code = self.current_object_data.get("code", "")
-        obj_permid = self.current_object_data.get("permId", "")
+        obj_permid = self.current_object_data.get("permId")
 
-        if not obj_code or not obj_permid:
+        if not obj_code:
             QMessageBox.warning(
                 self,
                 "Fehler",
@@ -605,7 +601,61 @@ class MainWindow(QMainWindow):
             )
             return
 
-        self.openbis_controller.update_object(obj_code, obj_permid, properties)
+        properties = self._collect_properties_from_ui()
+        instrument_id = None
+        if self.lcr_controller and self.lcr_controller.is_connected():
+            device_info = self.lcr_controller.get_device_info()
+            instrument_id = device_info.get("id") if device_info else None
+
+        request = ComponentSaveRequest(
+            barcode=obj_code,
+            properties=properties,
+            object_permid=obj_permid or None,
+            instrument_id=instrument_id,
+        )
+
+        self.ui.openbis_upload.setEnabled(False)
+        self._show_status(f"Speichere '{obj_code}'...", level="info", duration_ms=2000)
+
+        self._upload_thread = QtCore.QThread(self)
+        self._upload_worker = OpenBISUploadWorker(self.openbis_controller, request)
+        self._upload_worker.moveToThread(self._upload_thread)
+
+        self._upload_thread.started.connect(self._upload_worker.run)
+        self._upload_worker.finished.connect(self._on_upload_finished)
+        self._upload_worker.failed.connect(self._on_upload_failed)
+        self._upload_worker.finished.connect(self._upload_thread.quit)
+        self._upload_worker.failed.connect(self._upload_thread.quit)
+        self._upload_worker.finished.connect(self._upload_worker.deleteLater)
+        self._upload_worker.failed.connect(self._upload_worker.deleteLater)
+        self._upload_thread.finished.connect(self._cleanup_upload_thread)
+        self._upload_thread.start()
+
+    def _on_upload_finished(self, perm_id: str, mode: str) -> None:
+        """Upload-Worker erfolgreich beendet -- Business-Feedback kommt vom Controller."""
+        self.ui.openbis_upload.setEnabled(True)
+        if mode == "created" and self.current_object_data is not None:
+            self.current_object_data["permId"] = perm_id
+
+    def _on_upload_failed(self, error: str) -> None:
+        """Upload-Worker fehlgeschlagen -- Fehlermeldung kommt vom Controller."""
+        self.ui.openbis_upload.setEnabled(True)
+
+    def _cleanup_upload_thread(self) -> None:
+        """Aufräumen nach Ende des Upload-Threads."""
+        if self._upload_thread:
+            self._upload_thread.deleteLater()
+        self._upload_thread = None
+        self._upload_worker = None
+
+    def _on_openbis_object_created(self, obj_code: str):
+        """Wird aufgerufen, wenn ein neues Objekt erfolgreich angelegt wurde."""
+        self.ui.object_status.setCurrentText("Bekannt")
+        QMessageBox.information(
+            self,
+            "Erfolg",
+            f"Objekt '{obj_code}' wurde erfolgreich angelegt.",
+        )
 
     def _on_openbis_object_updated(self, obj_code: str):
         """Wird aufgerufen, wenn ein Objekt erfolgreich aktualisiert wurde."""
@@ -615,7 +665,7 @@ class MainWindow(QMainWindow):
             f"Objekt '{obj_code}' wurde erfolgreich aktualisiert.",
         )
 
-    def _collect_properties_from_ui(self) -> Dict[str, Any]:
+    def _collect_properties_from_ui(self) -> dict[str, Any]:
         """
         Sammelt nur geänderte Property-Werte aus der aktuell aktiven Seite
         sowie generelle Felder (manufacturer, orig_name, status).
@@ -643,11 +693,7 @@ class MainWindow(QMainWindow):
 
             print(f"Current data for {prop_name}: {current_value}")
             # Nur hinzufügen, wenn geändert und nicht leer
-            if (
-                current_value is not None
-                and current_value != ""
-                and current_value != initial_value
-            ):
+            if current_value is not None and current_value != "" and current_value != initial_value:
                 properties[prop_name] = current_value
 
         # 2. Sammle nur Properties der aktiven Seite
@@ -763,7 +809,7 @@ class MainWindow(QMainWindow):
 
         manufacturer = obj_data.get("manufacturer", "")
         self.ui.manufacturer.setText(manufacturer)
-        self.initial_field_values["equipment.manufacturer"] = manufacturer
+        self.initial_field_values[self.config.general_properties["manufacturer"]] = manufacturer
 
         status = obj_data.get("qt_function", "Unbekannt")
         self.ui.status.setCurrentText(status)
@@ -796,9 +842,7 @@ class MainWindow(QMainWindow):
                     if prop_value is not None:
                         field.setValue(float(prop_value))
                 case _:
-                    print(
-                        f"Unbekanntes Feldtyp für {prop_name}: {field.__class__.__name__}"
-                    )
+                    print(f"Unbekanntes Feldtyp für {prop_name}: {field.__class__.__name__}")
 
     # ========================================================================
     # Statusbar Meldungen (transient)
@@ -825,15 +869,13 @@ class MainWindow(QMainWindow):
             bar.setStyleSheet("")
         bar.showMessage(message, duration_ms)
         # Nach Ablauf Stil zurücksetzen (einfacher Ansatz)
-        QtCore.QTimer.singleShot(
-            duration_ms + 100, lambda: bar.setStyleSheet(prev_style)
-        )
+        QtCore.QTimer.singleShot(duration_ms + 100, lambda: bar.setStyleSheet(prev_style))
 
     # ========================================================================
     # Legacy-Methode (für Rückwärtskompatibilität)
     # ========================================================================
 
-    def openbis_status_callback(self, message: str, color: Optional[str] = None):
+    def openbis_status_callback(self, message: str, color: str | None = None):
         """Legacy callback für OpenBIS-Status (wird nicht mehr benötigt)."""
         self.ui.openbis_progress.setText(message)
         if not color:
@@ -905,9 +947,9 @@ class MainWindow(QMainWindow):
             # Clear existing children of the layout if any
             if layout.count() > 0:
 
-                def _clear_layout(l: QtWidgets.QLayout):
-                    while l.count():
-                        item = l.takeAt(0)
+                def _clear_layout(layout_: QtWidgets.QLayout):
+                    while layout_.count():
+                        item = layout_.takeAt(0)
                         if item is None:
                             continue
                         w = item.widget()
@@ -933,9 +975,7 @@ class MainWindow(QMainWindow):
                 label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
 
                 # Berechne die benötigte Breite für dieses Label
-                label_width = (
-                    font_metrics.horizontalAdvance(label_text) + 20
-                )  # +20 für Padding
+                label_width = font_metrics.horizontalAdvance(label_text) + 20  # +20 für Padding
                 max_label_width = max(max_label_width, label_width)
 
                 match prop_value["data_type"]:
@@ -976,9 +1016,8 @@ class MainWindow(QMainWindow):
 
         # Setze die minimale Breite für alle Labels basierend auf dem breitesten Label
         min_label_width = max(150, max_label_width)  # Mindestens 150px
-        max_section_height = 0
 
-        for key, value in sections.items():
+        for key, _value in sections.items():
             section = getattr(self.ui, key, None)
             if not section or not hasattr(section, "layout"):
                 continue

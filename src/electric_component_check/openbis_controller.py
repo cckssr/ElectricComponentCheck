@@ -5,14 +5,34 @@ OpenBIS Controller mit Qt-Signal-Integration.
 Features:
 - Qt-Signale für alle wichtigen Events
 - Verbindungsmanagement mit Status-Feedback
-- Objektsuche und -verwaltung
-- Property-Management
+- Objektsuche, -erstellung und -aktualisierung
+- Property-Management inkl. Vokabular-Normalisierung
+- Anhängen des Mess-PDF als CALI_CERT-Dataset
 - Fehlerbehandlung mit Signalen
 """
 
-from typing import Optional, Dict, Any, List
-from PySide6.QtCore import QObject, Signal
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
 from pybis import Openbis
+from PySide6.QtCore import QObject, Signal, Slot
+
+from .config import AppConfig
+
+
+@dataclass(frozen=True, slots=True)
+class ComponentSaveRequest:
+    """Everything needed to create-or-update one component and attach its report."""
+
+    barcode: str
+    properties: dict[str, Any]
+    object_permid: str | None = None  # None => create a new object
+    report_path: Path | None = None
+    instrument_id: str | None = None
 
 
 class OpenBISController(QObject):
@@ -20,27 +40,34 @@ class OpenBISController(QObject):
     Qt-basierter Controller für OpenBIS-Server.
 
     Signale:
-        connection_established: Wird ausgesendet, wenn die Verbindung erfolgreich hergestellt wurde
-        disconnected: Wird ausgesendet, wenn die Verbindung getrennt wurde
-        object_found: Wird ausgesendet, wenn ein Objekt gefunden wurde (dict)
-        object_not_found: Wird ausgesendet, wenn kein Objekt gefunden wurde (str: code)
-        properties_loaded: Wird ausgesendet, wenn Properties geladen wurden (dict)
-        error_occurred: Wird bei Fehlern ausgesendet (str)
-        status_changed: Wird bei Statusänderungen ausgesendet (str)
+        connection_established: Verbindung erfolgreich hergestellt (str)
+        disconnected: Verbindung getrennt
+        object_found: Objekt gefunden (dict)
+        object_not_found: Kein Objekt gefunden (str: code)
+        properties_loaded: Properties geladen (dict)
+        object_created: Neues Objekt erstellt (str: code)
+        object_updated: Objekt aktualisiert (str: code)
+        object_saved: Terminal-Signal für save_component (permId, mode)
+        dataset_attached: Dataset an Objekt angehängt (obj_code, dataset_permId)
+        save_failed: save_component ist fehlgeschlagen (str: Fehlermeldung)
+        error_occurred: Fehler aufgetreten (str)
+        status_changed: Verbindungsstatus geändert (str)
     """
 
-    # Constants
-    QT_TRANSLATE_ELEC_TYPE = {  # Openbis type code: qt label
+    # Fallback labels, used only until init_properties() has fetched the real
+    # server vocabulary (see _vocab_label). May drift from the server.
+    QT_TRANSLATE_ELEC_TYPE = {
         "CAPACITOR": "Kondensator",
         "DIODE": "Diode",
         "FUSE": "Sicherung",
-        "INDUCTOR": "Induktivität",
+        "INDUCTOR": "Spule",
         "OPAMP": "Operationsverstärker",
         "RESISTOR": "Widerstand",
         "SWITCH": "Schalter",
         "TRANSISTOR": "Transistor",
     }
     QT_TRANSLATE_ELEC_STATUS = {
+        "ARCHIVE": "Archiviert",
         "DEF": "Defekt",
         "FUNC": "Funktioniert",
         "NOCALB": "Unkalibriert",
@@ -49,45 +76,49 @@ class OpenBISController(QObject):
     }
 
     # Qt Signals
-    connection_established = Signal(str)  # Session info (connection status only)
+    connection_established = Signal(str)
     disconnected = Signal()
-    object_found = Signal(dict)  # Object data
-    object_not_found = Signal(str)  # Object code
-    properties_loaded = Signal(dict)  # Properties dictionary
-    object_updated = Signal(str)  # Object code that was updated
-    error_occurred = Signal(str)  # Error message
-    # Transiente Statusmeldungen (nur für Statusbar):
-    #   message, level(info|success|warning|error), duration(ms)
+    object_found = Signal(dict)
+    object_not_found = Signal(str)
+    properties_loaded = Signal(dict)
+    object_created = Signal(str)
+    object_updated = Signal(str)
+    object_saved = Signal(str, str)  # permId, mode ("created" | "updated")
+    dataset_attached = Signal(str, str)  # object code, dataset permId
+    save_failed = Signal(str)
+    error_occurred = Signal(str)
+    # Transiente Statusmeldungen (nur für Statusbar): message, level, duration(ms)
     status_message = Signal(str, str, int)
-    # Verbindungsspezifischer Status (nur für UI-Label):
-    #   z.B. "Verbunden als ...", "Verbindung getrennt"
+    # Verbindungsspezifischer Status (nur für UI-Label)
     status_changed = Signal(str)
 
     def __init__(
         self,
-        server_url: str,
-        session_token: Optional[str] = None,
-        status_callback=None,
+        config: AppConfig,
+        session_token: str | None = None,
         debug: bool = False,
     ):
         """
         Initialisiert den OpenBIS-Controller.
 
         Args:
-            server_url: URL des OpenBIS-Servers
+            config: Anwendungskonfiguration (Server-URL, Ziel-Collection, Property-Mapping)
             session_token: Optional - Session-Token für sofortige Verbindung
-            status_callback: Legacy callback (für Rückwärtskompatibilität)
             debug: Debug-Modus aktivieren
         """
         super().__init__()
 
-        self.server_url = server_url
-        self.openbis = Openbis(server_url)
-        self.status_callback = status_callback  # Legacy support
+        self.config = config
+        self.server_url = config.server_url
+        self.openbis = Openbis(config.server_url)
         self.debug = debug
         self._connected = False
 
-        # Wenn Token übergeben wurde, sofort verbinden
+        # Populated by init_properties(); empty until then.
+        self.known_property_codes: set[str] = set()
+        self.mandatory_property_codes: set[str] = set()
+        self._vocab_by_code: dict[str, dict[str, str]] = {}
+
         if session_token:
             self.connect_with_token(session_token)
 
@@ -115,17 +146,10 @@ class OpenBISController(QObject):
 
             self._connected = True
 
-            # Legacy callback
-            if self.status_callback:
-                self.status_callback("Erfolgreich verbunden", "green")
-
-            # Qt Signal
             info_str = f"Verbunden als {session_info.data.get('userName', 'Unbekannt')}"
             self._log(info_str)
             self.connection_established.emit(info_str)
-            # Verbindungsetikett aktualisieren
             self.status_changed.emit(info_str)
-            # Zusätzlich transiente Erfolgsmeldung
             self.status_message.emit("OpenBIS-Verbindung hergestellt", "success", 3000)
 
             return True
@@ -133,16 +157,8 @@ class OpenBISController(QObject):
         except Exception as e:
             error_msg = f"Verbindungsfehler: {str(e)}"
             self._log(error_msg)
-
-            # Legacy callback
-            if self.status_callback:
-                self.status_callback("Verbindung fehlgeschlagen", "red")
-
-            # Qt Signal
             self.error_occurred.emit(error_msg)
-            # Transiente Fehlermeldung in Statusbar
             self.status_message.emit(error_msg, "error", 6000)
-            # Verbindungsetikett auf nicht-verbunden setzen
             self.status_changed.emit("Nicht verbunden")
 
             return False
@@ -150,36 +166,35 @@ class OpenBISController(QObject):
     def disconnect_openbis(self) -> None:
         """Trennt die Verbindung zu OpenBIS."""
         if self._connected:
-            # try:
-            #     self.openbis.logout()
-            # except Exception as e:
-            #     self._log(f"Fehler beim Trennen: {e}")
-            # finally:
             self._connected = False
             self._log("Verbindung getrennt")
             self.disconnected.emit()
-            # Verbindungsetikett
             self.status_changed.emit("Verbindung getrennt")
-            # Transiente Info
             self.status_message.emit("OpenBIS-Verbindung getrennt", "info", 2000)
 
     def is_connected(self) -> bool:
         """Prüft, ob mit OpenBIS verbunden."""
         return self._connected
 
-    def search_object(
-        self, code: str, object_type: str = "ELEKTRONISCHES_BAUTEIL"
-    ) -> Optional[Any]:
+    def _vocab_label(self, prop_code: str, term_code: str, fallback: dict[str, str]) -> str:
+        """Translates a vocabulary term code to its label, preferring live server data."""
+        vocab = self._vocab_by_code.get(prop_code.lower())
+        if vocab and term_code in vocab:
+            return vocab[term_code]
+        return fallback.get(term_code, term_code or "Unbekannt")
+
+    def search_object(self, code: str, object_type: str | None = None) -> Any | None:
         """
         Sucht ein Objekt in OpenBIS nach Code.
 
         Args:
             code: Object-Code zum Suchen
-            object_type: Erwarteter Objekttyp
+            object_type: Erwarteter Objekttyp (Standard: config.object_type)
 
         Returns:
             Objekt wenn gefunden, None sonst
         """
+        object_type = object_type or self.config.object_type
         if not self._connected:
             self.error_occurred.emit("Nicht mit OpenBIS verbunden")
             return None
@@ -212,8 +227,9 @@ class OpenBISController(QObject):
                     self.error_occurred.emit(msg)
                     return None
 
-                # Objekt gefunden - als Dictionary für Signal
-                obj_data = {
+                gp = self.config.general_properties
+                properties = obj.props.all_nonempty() if hasattr(obj, "props") else {}
+                obj_data: dict[str, Any] = {
                     "code": obj.code,
                     "type": "",
                     "qt_type": "Unbekannt",
@@ -221,26 +237,18 @@ class OpenBISController(QObject):
                     "qt_function": "Unbekannt",
                     "manufacturer": "",
                     "permId": obj.permId,
-                    "properties": (
-                        obj.props.all_nonempty() if hasattr(obj, "props") else {}
-                    ),
+                    "properties": properties,
                 }
-                if obj_data["properties"]:
-                    obj_data["type"] = obj_data["properties"].get(
-                        "equipment.electrical_type", "UNKWN"
+                if properties:
+                    obj_data["type"] = properties.get(gp["electrical_type"], "UNKWN")
+                    obj_data["qt_type"] = self._vocab_label(
+                        gp["electrical_type"], obj_data["type"], self.QT_TRANSLATE_ELEC_TYPE
                     )
-                    obj_data["qt_type"] = self.QT_TRANSLATE_ELEC_TYPE.get(
-                        obj_data["type"], "Unbekannt"
+                    obj_data["function"] = properties.get(gp["status"], "UNKWN")
+                    obj_data["qt_function"] = self._vocab_label(
+                        gp["status"], obj_data["function"], self.QT_TRANSLATE_ELEC_STATUS
                     )
-                    obj_data["function"] = obj_data["properties"].get(
-                        "equipment.status", "UNKWN"
-                    )
-                    obj_data["qt_function"] = self.QT_TRANSLATE_ELEC_STATUS.get(
-                        obj_data["function"], "Unbekannt"
-                    )
-                    obj_data["manufacturer"] = obj_data["properties"].get(
-                        "equipment.manufacturer", ""
-                    )
+                    obj_data["manufacturer"] = properties.get(gp["manufacturer"], "")
 
                 self._log(f"Objekt gefunden: {code}")
                 self.object_found.emit(obj_data)
@@ -255,43 +263,56 @@ class OpenBISController(QObject):
             self.status_message.emit(error_msg, "error", 6000)
             return None
 
-    def init_properties(
-        self, object_type: str = "ELEKTRONISCHES_BAUTEIL"
-    ) -> Dict[str, List[str]]:
+    def init_properties(self, object_type: str | None = None) -> dict[str, dict[str, Any]]:
         """
         Initialisiert und lädt die Properties eines Objekttyps.
 
+        Baut außerdem known_property_codes, mandatory_property_codes und den
+        internen Vokabular-Index auf, die von save_component()/_normalise_vocabulary()
+        und der UI (Pflichtfelder) verwendet werden.
+
         Args:
-            object_type: OpenBIS Objekttyp
+            object_type: OpenBIS Objekttyp (Standard: config.object_type)
 
         Returns:
             Dictionary mit Properties nach Section gruppiert
         """
+        object_type = object_type or self.config.object_type
         if not self._connected:
             self.error_occurred.emit("Nicht mit OpenBIS verbunden")
             return {}
 
         try:
             self._log(f"Lade Properties für {object_type}...")
-            self.status_message.emit(
-                f"Lade Properties für {object_type}...", "info", 2000
-            )
+            self.status_message.emit(f"Lade Properties für {object_type}...", "info", 2000)
 
             obj_type = self.openbis.get_object_type(object_type)
             prop_assign = obj_type.get_property_assignments().df
-            sections = prop_assign["section"].unique()
 
-            properties = {section: [] for section in sections}
+            sections: dict[str, list[str]] = {}
+            mandatory_by_code: dict[str, bool] = {}
+            data_type_by_code: dict[str, str] = {}
             for _, row in prop_assign.iterrows():
-                properties[row["section"]].append(row["code"])
+                code = str(row["code"])
+                sections.setdefault(row["section"], []).append(code)
+                mandatory_by_code[code.lower()] = bool(row["mandatory"])
+                data_type_by_code[code.lower()] = row["dataType"]
 
-            properties = self._detail_object_properties(properties)
-
-            self._log(f"Properties geladen: {len(properties)} Sections")
-            self.properties_loaded.emit(properties)
-            self.status_message.emit(
-                f"Properties für {object_type} geladen", "success", 2500
+            properties = self._detail_object_properties(
+                sections, data_type_by_code, mandatory_by_code
             )
+
+            self.known_property_codes = set(data_type_by_code)
+            self.mandatory_property_codes = {
+                code for code, mandatory in mandatory_by_code.items() if mandatory
+            }
+
+            self._log(
+                f"Properties geladen: {len(properties)} Sections, "
+                f"{len(self.mandatory_property_codes)} Pflichtfelder"
+            )
+            self.properties_loaded.emit(properties)
+            self.status_message.emit(f"Properties für {object_type} geladen", "success", 2500)
 
             return properties
 
@@ -302,7 +323,7 @@ class OpenBISController(QObject):
             self.status_message.emit(error_msg, "error", 6000)
             return {}
 
-    def get_server_info(self) -> Optional[Dict[str, str]]:
+    def get_server_info(self) -> dict[str, str] | None:
         """
         Gibt Server-Informationen zurück.
 
@@ -318,138 +339,224 @@ class OpenBISController(QObject):
         }
 
     def _detail_object_properties(
-        self, props: Dict[str, List[str]]
-    ) -> Dict[str, List[Dict[str, Any]]]:
-        """Hilfsmethode zum Detaillieren der Properties eines Objekts."""
-        detailed_props = props.copy()
-        for key in props:
-            key_list = props[key]
-            detailed_props[key] = dict.fromkeys(key_list)
-            for i, o_type in enumerate(key_list):
-                temp_o_type = self.openbis.get_property_type(o_type)
-                temp_dict = {
-                    "label": temp_o_type.label,
-                    "description": temp_o_type.description,
-                    "data_type": temp_o_type.dataType,
-                    "vocabulary": temp_o_type.vocabulary,
-                }
-                if temp_dict["data_type"] == "CONTROLLEDVOCABULARY":
-                    vocab = (
-                        self.openbis.get_vocabulary(temp_dict["vocabulary"])
-                        .get_terms()
-                        .df
-                    )
-                    terms = vocab[["code", "label"]].to_dict("records")
-                    temp_dict["vocab_terms"] = terms
-                detailed_props[key][o_type] = temp_dict
-        return detailed_props
+        self,
+        sections: dict[str, list[str]],
+        data_type_by_code: dict[str, str],
+        mandatory_by_code: dict[str, bool],
+    ) -> dict[str, dict[str, Any]]:
+        """Reichert die Property-Codes je Section mit Label/Typ/Vokabular an.
 
-    def update_object(
-        self, obj_code: str, obj_permid: str, properties: Dict[str, Any]
-    ) -> bool:
+        dataType und mandatory kommen bereits aus get_property_assignments()'
+        DataFrame (kein Extra-Request); label/description/vocabulary sind dort
+        nicht enthalten und erfordern weiterhin einen get_property_type() pro
+        Property. Ein einzelner fehlerhafter Code bricht nicht den ganzen
+        Aufbau ab.
         """
-        Aktualisiert die Properties eines Objekts in OpenBIS.
+        detailed: dict[str, dict[str, Any]] = {}
+        for section, codes in sections.items():
+            detailed[section] = {}
+            for code in codes:
+                code_lower = code.lower()
+                data_type = data_type_by_code.get(code_lower, "VARCHAR")
+                entry: dict[str, Any] = {
+                    "label": code,
+                    "description": "",
+                    "data_type": data_type,
+                    "vocabulary": None,
+                    "mandatory": mandatory_by_code.get(code_lower, False),
+                }
+                try:
+                    prop_type = self.openbis.get_property_type(code)
+                    entry["label"] = prop_type.label
+                    entry["description"] = prop_type.description
+                    entry["vocabulary"] = prop_type.vocabulary
+                    if data_type == "CONTROLLEDVOCABULARY" and prop_type.vocabulary:
+                        terms = (
+                            self.openbis.get_vocabulary(prop_type.vocabulary)
+                            .get_terms()
+                            .df[["code", "label"]]
+                            .to_dict("records")
+                        )
+                        entry["vocab_terms"] = terms
+                        self._vocab_by_code[code_lower] = {t["code"]: t["label"] for t in terms}
+                except Exception as e:
+                    self._log(f"Warnung: Details für Property {code} nicht ladbar: {e}")
+                detailed[section][code] = entry
+        return detailed
 
-        Args:
-            obj_code: Code des zu aktualisierenden Objekts
-            obj_permid: PermID des zu aktualisierenden Objekts
-            properties: Dictionary mit den zu aktualisierenden Properties
+    def _normalise_vocabulary(self, properties: dict[str, Any]) -> dict[str, Any]:
+        """Übersetzt ein menschenlesbares Vokabular-Label auf seinen Term-Code.
+
+        Generalisiert über jede CONTROLLEDVOCABULARY-Property, deren Terme
+        init_properties() bereits geladen hat (Status, Bauteiltyp, Widerstand-Typ, ...).
+        Werte, die bereits ein gültiger Code sind, bleiben unverändert.
+        """
+        normalised = dict(properties)
+        for prop_code, value in properties.items():
+            if not isinstance(value, str):
+                continue
+            vocab = self._vocab_by_code.get(prop_code.lower())
+            if not vocab or value in vocab:
+                continue
+            inv = {label.lower(): code for code, label in vocab.items()}
+            mapped = inv.get(value.lower())
+            if mapped:
+                normalised[prop_code] = mapped
+        return normalised
+
+    def _filter_properties(self, properties: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+        """Drops properties the server doesn't know about instead of failing the save.
+
+        Returns (known_properties, skipped_codes). If known_property_codes hasn't
+        been populated yet (init_properties() not called), nothing is filtered.
+        """
+        if not self.known_property_codes:
+            return dict(properties), []
+        known = {k: v for k, v in properties.items() if k.lower() in self.known_property_codes}
+        skipped = [k for k in properties if k.lower() not in self.known_property_codes]
+        return known, skipped
+
+    def _update_object(self, obj_permid: str, properties: dict[str, Any]) -> Any:
+        """Aktualisiert ein bestehendes Objekt und speichert es tatsächlich."""
+        obj = self.openbis.get_object(obj_permid)
+        old_props = obj.props.all_nonempty() if hasattr(obj, "props") else {}
+
+        changed: list[str] = []
+        for prop, value in properties.items():
+            prop = prop.lower()
+            if old_props.get(prop) != value:
+                self._log(f" - Aktualisiere {prop}: {old_props.get(prop)} -> {value}")
+                obj.props[prop] = value
+                changed.append(prop)
+            else:
+                self._log(f" - Keine Änderung für {prop}")
+
+        if changed:
+            obj.save()
+        return obj
+
+    def _create_object(self, barcode: str, properties: dict[str, Any]) -> Any:
+        """Erstellt ein neues Objekt in der konfigurierten Ziel-Collection."""
+        target = self.config.target
+        if not target.collection:
+            raise ValueError(
+                "openbis.target.collection ist nicht konfiguriert -- kann kein neues "
+                "Objekt anlegen. Siehe DEVELOPMENT.md."
+            )
+
+        kwargs: dict[str, Any] = {"code": barcode, "experiment": target.collection}
+        if target.space:
+            kwargs["space"] = target.space
+        if target.project:
+            kwargs["project"] = target.project
+
+        obj = self.openbis.new_object(type=self.config.object_type, props=properties, **kwargs)
+        obj.save()
+        return obj
+
+    def _attach_report(
+        self, obj: Any, pdf_path: Path, *, instrument_id: str | None, measured_at: str
+    ) -> str:
+        """Hängt das Mess-PDF als CALI_CERT-Dataset an das Objekt an."""
+        ds_cfg = self.config.dataset
+        props = {
+            ds_cfg.lab_property: ds_cfg.lab_name,
+            ds_cfg.date_property: measured_at,
+            ds_cfg.device_property: instrument_id or "unbekannt",
+        }
+        dataset = self.openbis.new_dataset(
+            type=ds_cfg.type,
+            object=obj,
+            file=str(pdf_path),
+            props=props,
+        )
+        dataset.save()
+        return dataset.permId
+
+    def save_component(self, req: ComponentSaveRequest) -> str | None:
+        """Erstellt oder aktualisiert ein Objekt und hängt optional das Mess-PDF an.
+
+        Einziger Einstiegspunkt für den Upload-Vorgang: sendet genau ein
+        terminales Signal (object_saved bei Erfolg, save_failed bei Fehler).
+        Rührt keine Widgets an -- sicher aus einem Worker-Thread aufrufbar.
 
         Returns:
-            True, wenn die Aktualisierung erfolgreich war, sonst False
+            Die permId des gespeicherten Objekts, oder None bei einem Fehler.
         """
         if not self._connected:
-            self.error_occurred.emit("Nicht mit OpenBIS verbunden")
-            return False
+            msg = "Nicht mit OpenBIS verbunden"
+            self.error_occurred.emit(msg)
+            self.save_failed.emit(msg)
+            return None
 
         try:
-            self._log(f"Update Properties für {obj_code}...")
-            self.status_message.emit(
-                f"Update Properties für {obj_code}...", "info", 2000
-            )
-            # Check properties for equipment.status
-            if "equipment.status" in properties:
-                status_value = properties["equipment.status"]
-                if isinstance(status_value, str):
-                    # Erst versuchen, Label -> Key (case-insensitive)
-                    inv = {
-                        v.lower(): k for k, v in self.QT_TRANSLATE_ELEC_STATUS.items()
-                    }
-                    key = inv.get(status_value.lower())
-                    if key:
-                        properties["equipment.status"] = key
-                    else:
-                        # Falls bereits ein Key übergeben wurde (z.B. "OK"), normalisieren
-                        up = status_value.upper()
-                        if up in self.QT_TRANSLATE_ELEC_STATUS:
-                            properties["equipment.status"] = up
-                        # sonst bleibt der Wert unverändert
-            # Update Object
-            obj = self.openbis.get_object(obj_permid)
-            old_props = obj.props.all_nonempty() if hasattr(obj, "props") else {}
-            for prop, value in properties.items():
-                prop = prop.lower()
-                if prop in old_props and old_props[prop] != value:
-                    self._log(f" - Aktualisiere {prop}: {old_props[prop]} -> {value}")
-                    obj.props[prop] = value
-                elif prop not in old_props:
-                    self._log(f" - Setze {prop}: {value}")
-                    obj.props[prop] = value
-                else:
-                    self._log(f" - Keine Änderung für {prop}")
-            # obj.save()
+            properties, skipped = self._filter_properties(req.properties)
+            properties = self._normalise_vocabulary(properties)
+            if skipped:
+                self.status_message.emit(
+                    f"{len(skipped)} unbekannte Property(s) übersprungen: {', '.join(skipped)}",
+                    "warning",
+                    5000,
+                )
 
-            self._log(f"Properties aktualisiert: {len(properties)}")
-            self.object_updated.emit(obj_code)
-            self.status_message.emit(
-                f"Properties für {obj_code} aktualisiert", "success", 2500
-            )
+            if req.object_permid:
+                obj = self._update_object(req.object_permid, properties)
+                mode = "updated"
+                self.object_updated.emit(obj.code)
+            else:
+                obj = self._create_object(req.barcode, properties)
+                mode = "created"
+                self.object_created.emit(obj.code)
 
-            return True
+            if req.report_path is not None:
+                dataset_permid = self._attach_report(
+                    obj,
+                    req.report_path,
+                    instrument_id=req.instrument_id,
+                    measured_at=datetime.now().strftime("%Y-%m-%d"),
+                )
+                self.dataset_attached.emit(obj.code, dataset_permid)
+
+            self._log(f"Objekt {mode}: {obj.code}")
+            self.object_saved.emit(obj.permId, mode)
+            self.status_message.emit(f"Objekt {obj.code} {mode}", "success", 3000)
+            return obj.permId
 
         except Exception as e:
-            error_msg = f"Fehler beim Aktualisieren der Eigenschaften: {str(e)}"
+            error_msg = f"Fehler beim Speichern: {e}"
             self._log(error_msg)
             self.error_occurred.emit(error_msg)
             self.status_message.emit(error_msg, "error", 6000)
-            return False
+            self.save_failed.emit(error_msg)
+            return None
 
-    def create_object(self, obj_code, properties: Dict[str, Any], object_type: str = "ELEKTRONISCHES_BAUTEIL") -> bool:
-        """
-        Erstellt ein neues Objekt in OpenBIS.
 
-        Args:
-            obj_code: Code des zu erstellenden Objekts
-            properties: Dictionary mit den Properties des neuen Objekts
-            object_type: Typ des zu erstellenden Objekts
-        """
-        if not self._connected:
-            self.error_occurred.emit("Nicht mit OpenBIS verbunden")
-            return False
+class OpenBISUploadWorker(QObject):
+    """Führt save_component() in einem Hintergrund-Thread aus.
 
-        try:
-            self._log(f"Erstelle neues Objekt: {obj_code}...")
-            self.status_message.emit(
-                f"Erstelle neues Objekt: {obj_code}...", "info", 2000
-            )
+    Sample.save()/DataSet.save() sind mehrere blockierende HTTPS-Requests ohne
+    Timeout; das Verhalten spiegelt LCRMeasurementWorker, damit der Upload die
+    GUI genauso wenig einfriert wie eine laufende Messung.
+    """
 
-            # Create Object
-            obj = self.openbis.create_object(object_type, obj_code, properties)
-            if not obj:
-                self.error_occurred.emit("Fehler beim Erstellen des Objekts")
-                return False
+    finished = Signal(str, str)  # permId, mode
+    failed = Signal(str)
 
-            self._log(f"Objekt erstellt: {obj_code}")
-            self.object_created.emit(obj_code)
-            self.status_message.emit(
-                f"Objekt erstellt: {obj_code}", "success", 2500
-            )
+    def __init__(
+        self,
+        controller: OpenBISController,
+        request: ComponentSaveRequest,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._controller = controller
+        self._request = request
 
-            return True
-
-        except Exception as e:
-            error_msg = f"Fehler beim Erstellen des Objekts: {str(e)}"
-            self._log(error_msg)
-            self.error_occurred.emit(error_msg)
-            self.status_message.emit(error_msg, "error", 6000)
-            return False
+    @Slot()
+    def run(self) -> None:
+        perm_id = self._controller.save_component(self._request)
+        if perm_id is None:
+            self.failed.emit("Speichern fehlgeschlagen")
+        else:
+            mode = "created" if self._request.object_permid is None else "updated"
+            self.finished.emit(perm_id, mode)
