@@ -1,26 +1,26 @@
 import json
+import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
-import tempfile
+from typing import Any
 
+import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm
 from reportlab.platypus import (
+    Image,
+    PageBreak,
+    Paragraph,
     SimpleDocTemplate,
+    Spacer,
     Table,
     TableStyle,
-    Paragraph,
-    Spacer,
-    PageBreak,
-    Image,
 )
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-import matplotlib.pyplot as plt
+
 from .plot_measurement import MeasurementPlotter
 
 
@@ -67,9 +67,7 @@ class MeasurementReport:
         "timestamp": "",
     }
 
-    def __init__(
-        self, df: pd.DataFrame, metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def __init__(self, df: pd.DataFrame, metadata: dict[str, Any] | None = None) -> None:
         self.df = df.copy()
         self.metadata = metadata or {}
         self.styles = getSampleStyleSheet()
@@ -117,7 +115,7 @@ class MeasurementReport:
     def build(
         self,
         output_path: str | Path,
-        title: Optional[str] = None,
+        title: str | None = None,
     ) -> Path:
         """Erstellt das PDF und gibt den Ausgabepfad zurück.
 
@@ -165,16 +163,15 @@ class MeasurementReport:
 
     def _cleanup_temp_files(self):
         """Löscht alle temporären Dateien."""
+        import contextlib
         import os
 
         for tmp_path in self._temp_files:
-            try:
+            with contextlib.suppress(OSError):
                 os.remove(tmp_path)
-            except:
-                pass
         self._temp_files = []
 
-    def _create_cover_page(self, title: Optional[str]) -> list:
+    def _create_cover_page(self, title: str | None) -> list:
         """Erstellt das Deckblatt."""
         elements = []
 
@@ -196,9 +193,7 @@ class MeasurementReport:
 
         # Allgemeine Metadaten
         if self.metadata.get("general"):
-            elements.append(
-                Paragraph("Allgemeine Metadaten", self.styles["SectionHeader"])
-            )
+            elements.append(Paragraph("Allgemeine Metadaten", self.styles["SectionHeader"]))
             elements.append(self._create_metadata_table(self.metadata["general"]))
             elements.append(Spacer(1, 0.5 * cm))
 
@@ -211,14 +206,12 @@ class MeasurementReport:
         # Notizen
         if self.metadata.get("notes"):
             elements.append(Paragraph("Notizen", self.styles["SectionHeader"]))
-            elements.append(
-                Paragraph(str(self.metadata["notes"]), self.styles["CustomBody"])
-            )
+            elements.append(Paragraph(str(self.metadata["notes"]), self.styles["CustomBody"]))
             elements.append(Spacer(1, 0.5 * cm))
 
         return elements
 
-    def _create_metadata_table(self, data: Dict[str, Any]):
+    def _create_metadata_table(self, data: dict[str, Any]):
         """Erstellt eine formatierte Tabelle für Metadaten."""
         if not data:
             return Paragraph("(keine Daten)", self.styles["CustomBody"])
@@ -287,9 +280,7 @@ class MeasurementReport:
         elements.append(Paragraph("Messwerte", self.styles["SectionHeader"]))
 
         if self.df.empty:
-            elements.append(
-                Paragraph("Keine Messwerte vorhanden", self.styles["CustomBody"])
-            )
+            elements.append(Paragraph("Keine Messwerte vorhanden", self.styles["CustomBody"]))
             return elements
 
         # DataFrame vorbereiten
@@ -303,11 +294,7 @@ class MeasurementReport:
                     t = pd.to_datetime(val)
                     return t.strftime("%H:%M:%S")
                 except Exception:
-                    return (
-                        str(val)[-8:]
-                        if pd.notnull(val) and len(str(val)) >= 8
-                        else str(val)
-                    )
+                    return str(val)[-8:] if pd.notnull(val) and len(str(val)) >= 8 else str(val)
 
             df["timestamp"] = df["timestamp"].apply(only_time)
 
@@ -326,7 +313,7 @@ class MeasurementReport:
                 abs_v = abs(v)
                 for factor, prefix in reversed(MeasurementPlotter.SI_PREFIXES):
                     if abs_v >= factor:
-                        return f"{v/factor:.3g} {prefix}Hz" if prefix else f"{v:.3g} Hz"
+                        return f"{v / factor:.3g} {prefix}Hz" if prefix else f"{v:.3g} Hz"
                 return f"{v:.3g} Hz"
 
             df["freq_hz"] = df["freq_hz"].apply(format_freq)
@@ -421,13 +408,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="PDF-Messprotokoll erzeugen")
     parser.add_argument("--csv", type=str, help="Pfad zur CSV-Datei", required=True)
-    parser.add_argument(
-        "--out", type=str, help="Pfad zur Ausgabedatei (PDF)", default="report.pdf"
-    )
+    parser.add_argument("--out", type=str, help="Pfad zur Ausgabedatei (PDF)", default="report.pdf")
     parser.add_argument("--title", type=str, help="Dokumenttitel", default=None)
-    parser.add_argument(
-        "--meta", type=str, help="Pfad zu Metadaten (JSON)", default=None
-    )
+    parser.add_argument("--meta", type=str, help="Pfad zu Metadaten (JSON)", default=None)
     args = parser.parse_args()
 
     csv_path = Path(args.csv)

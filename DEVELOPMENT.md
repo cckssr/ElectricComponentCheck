@@ -61,6 +61,17 @@ scan → measure → upload → scan-next-component loop without a mouse; `Ctrl+
 equivalent. When changing this flow, add the transition to `component_session.py`'s allowed-transitions
 table first — `MainWindow._transition()` reports (rather than crashes on) anything not listed there.
 
+## Testing
+
+`make test` runs the whole suite; none of it needs the LCR-500 or a live OpenBIS server.
+`test_openbis_save.py` exercises `OpenBISController` against a hand-written fake `Openbis` rather
+than the real client — see `FakeOpenbis`/`FakeSample`/`FakeDataSet` there for the pattern to extend
+if you add a new server call. There is currently no equivalent fake for the LCR-500 driver, so
+`LCRController`/`lcr_controller.LCR500HardwareController` are exercised only indirectly (through
+`mainwindow.py`'s handlers, driving them by hand with constructed result dicts, as the manual
+end-to-end checks in this branch's commits did) — a `pymeasure` `ProtocolAdapter`-based fake would
+be the natural next step if this needs to become an automated test.
+
 ## Common tasks
 
 ```bash

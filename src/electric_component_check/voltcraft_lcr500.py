@@ -23,14 +23,13 @@
 #
 
 import logging
+
 from pymeasure.instruments import Instrument, SCPIMixin
 from pymeasure.instruments.validators import (
     strict_discrete_set,
 )
 
-log = logging.getLogger(
-    __name__
-)  # https://docs.python.org/3/howto/logging.html#library-config
+log = logging.getLogger(__name__)  # https://docs.python.org/3/howto/logging.html#library-config
 log.addHandler(logging.NullHandler())
 
 _FREQS_HZ = [

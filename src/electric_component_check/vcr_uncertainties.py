@@ -7,10 +7,10 @@ Einheit, Auflösung und Fehlerparameter (z. B. Ce_pct/Ce_digits, Le_pct/Le_digit
 Ze_pct/Ze_digits sowie De_abs bzw. theta_deg und optional "equiv").
 """
 
-from typing import Literal
+import json
 from math import sqrt
 from pathlib import Path
-import json
+from typing import Literal
 
 
 class MeasurementError:
@@ -59,7 +59,7 @@ class MeasurementError:
         Returns:
             Das geladene Spezifikations-Dictionary.
         """
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
     def select_block(
@@ -131,7 +131,7 @@ class MeasurementError:
         Returns:
             Absoluter Betrag oder 0.0, wenn nicht spezifiziert.
         """
-        de = r.get("De_abs", None)
+        de = r.get("De_abs")
         return float(de) if de is not None else 0.0
 
     def uB_theta_deg(self, r: dict) -> float:
@@ -143,7 +143,7 @@ class MeasurementError:
         Returns:
             Absoluter Betrag in Grad oder 0.0, wenn nicht spezifiziert.
         """
-        th = r.get("theta_deg", None)
+        th = r.get("theta_deg")
         return float(th) if th is not None else 0.0
 
     @staticmethod
@@ -265,9 +265,7 @@ class MeasurementError:
         r, _ = self.match_range(blk, value_SI)
         equiv = r.get("equiv", None)
         if equiv is None:
-            raise ValueError(
-                f"Kein EQUIV-Modus für {meas_type} bei {value_SI} (freq {freq_hz})"
-            )
+            raise ValueError(f"Kein EQUIV-Modus für {meas_type} bei {value_SI} (freq {freq_hz})")
         return equiv
 
 
@@ -290,7 +288,7 @@ def format_with_prefix(value, unit):
     absval = abs(value)
     for factor, prefix in reversed(SI_PREFIXES):
         if absval >= factor:
-            return f"{value/factor:.3g} {prefix}{unit}"
+            return f"{value / factor:.3g} {prefix}{unit}"
     return f"{value:.3g} {unit}"
 
 
@@ -322,9 +320,7 @@ def test_uncertainty(meas_spec_path, C=None, L=None, Z=None, freq=None, Q=None):
         r, s = me.match_range(blk, C)
         pctC, digC = get_uncertainty_components(C, r, s, "C")
         sumC = pctC + digC
-        print(
-            f"Kapazität: {format_with_prefix(C, 'F')} @ {format_with_prefix(freq, 'Hz')}"
-        )
+        print(f"Kapazität: {format_with_prefix(C, 'F')} @ {format_with_prefix(freq, 'Hz')}")
         print(f"  Unsicherheit gesamt (aus Methode): {format_with_prefix(uC, 'F')}")
         print(f"    Anteil Prozent: {format_with_prefix(pctC, 'F')}")
         print(f"    Anteil Stellen: {format_with_prefix(digC, 'F')}")
@@ -339,9 +335,7 @@ def test_uncertainty(meas_spec_path, C=None, L=None, Z=None, freq=None, Q=None):
         r, s = me.match_range(blk, L)
         pctL, digL = get_uncertainty_components(L, r, s, "L")
         sumL = pctL + digL
-        print(
-            f"Induktivität: {format_with_prefix(L, 'H')} @ {format_with_prefix(freq, 'Hz')}"
-        )
+        print(f"Induktivität: {format_with_prefix(L, 'H')} @ {format_with_prefix(freq, 'Hz')}")
         print(f"  Unsicherheit gesamt (aus Methode): {format_with_prefix(uL, 'H')}")
         print(f"    Anteil Prozent: {format_with_prefix(pctL, 'H')}")
         print(f"    Anteil Stellen: {format_with_prefix(digL, 'H')}")
@@ -356,9 +350,7 @@ def test_uncertainty(meas_spec_path, C=None, L=None, Z=None, freq=None, Q=None):
         r, s = me.match_range(blk, Z)
         pctZ, digZ = get_uncertainty_components(Z, r, s, "Z")
         sumZ = pctZ + digZ
-        print(
-            f"Impedanz: {format_with_prefix(Z, 'Ω')} @ {format_with_prefix(freq, 'Hz')}"
-        )
+        print(f"Impedanz: {format_with_prefix(Z, 'Ω')} @ {format_with_prefix(freq, 'Hz')}")
         print(f"  Unsicherheit gesamt (aus Methode): {format_with_prefix(uZ, 'Ω')}")
         print(f"    Anteil Prozent: {format_with_prefix(pctZ, 'Ω')}")
         print(f"    Anteil Stellen: {format_with_prefix(digZ, 'Ω')}")
@@ -378,14 +370,10 @@ def test_uncertainty(meas_spec_path, C=None, L=None, Z=None, freq=None, Q=None):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Test Messunsicherheiten für LCR-Messungen"
-    )
+    parser = argparse.ArgumentParser(description="Test Messunsicherheiten für LCR-Messungen")
     parser.add_argument("json", type=str, help="Pfad zur JSON-Spezifikation")
     parser.add_argument("--C", type=str, help="Kapazitätswert, z.B. 1uF", default=None)
-    parser.add_argument(
-        "--L", type=str, help="Induktivitätswert, z.B. 1mH", default=None
-    )
+    parser.add_argument("--L", type=str, help="Induktivitätswert, z.B. 1mH", default=None)
     parser.add_argument("--Z", type=str, help="Impedanzwert, z.B. 100", default=None)
     parser.add_argument("--freq", type=str, help="Frequenz, z.B. 1000", default=None)
     parser.add_argument("--Q", type=float, help="Q-Wert", default=None)

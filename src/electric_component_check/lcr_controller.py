@@ -8,7 +8,6 @@ Features:
 - Verbindungsmanagement mit automatischer Überwachung (QTimer)
 - Messmethoden für Kondensatoren, Induktivitäten und Widerstände
 - Qt-Signale für Status-Updates
-- Wiederverwendung der LCR500Controller-Logik aus lcr_testing
 """
 
 from __future__ import annotations

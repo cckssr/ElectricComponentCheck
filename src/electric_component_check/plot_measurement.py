@@ -1,10 +1,11 @@
-import pandas as pd
-import matplotlib.pyplot as plt
+import argparse
 import glob
 import os
-import numpy as np
-import argparse
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 
 class MeasurementPlotter:
@@ -141,12 +142,8 @@ class MeasurementPlotter:
         secondary_col = self.df.columns[5]
         primary_values = self.df[primary_col].values
         secondary_values = self.df[secondary_col].values
-        primary_label, primary_factor = self.format_axis_label(
-            primary_col, primary_values
-        )
-        secondary_label, secondary_factor = self.format_axis_label(
-            secondary_col, secondary_values
-        )
+        primary_label, primary_factor = self.format_axis_label(primary_col, primary_values)
+        secondary_label, secondary_factor = self.format_axis_label(secondary_col, secondary_values)
 
         # Primary Plot (oben)
         for lvl, group in self.df.groupby("level_v"):
@@ -231,9 +228,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Messdaten plotten")
     parser.add_argument("--csv", type=str, help="Pfad zur CSV-Datei", default=None)
     parser.add_argument("--title", type=str, help="Titel des Plots", default=None)
-    parser.add_argument(
-        "--output", type=str, help="Ausgabepfad für PDF/PNG", default=None
-    )
+    parser.add_argument("--output", type=str, help="Ausgabepfad für PDF/PNG", default=None)
     parser.add_argument(
         "--no-show", action="store_true", help="Plot nicht anzeigen (nur speichern)"
     )
@@ -254,6 +249,4 @@ if __name__ == "__main__":
 
     # Plotter erstellen und Plot generieren
     plotter = MeasurementPlotter(df)
-    fig, axes = plotter.plot(
-        title=title, output_path=args.output, show=not args.no_show
-    )
+    fig, axes = plotter.plot(title=title, output_path=args.output, show=not args.no_show)

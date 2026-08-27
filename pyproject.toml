@@ -67,6 +67,10 @@ electric_component_check = ["*.json", "*.toml", "ui/*.ui"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# form_ui.py / calibration_ui.py are pyside6-uic output (`make ui` regenerates
+# them from form.ui / calibration.ui) -- linting/formatting them here just
+# fights the next regeneration.
+extend-exclude = ["src/electric_component_check/ui/form_ui.py", "src/electric_component_check/ui/calibration_ui.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
