@@ -17,8 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QFormLayout, QFrame,
     QGridLayout, QLabel, QLineEdit, QMainWindow,
-    QMenuBar, QPushButton, QSizePolicy, QStatusBar,
-    QToolBox, QToolButton, QWidget)
+    QMenuBar, QProgressBar, QPushButton, QSizePolicy,
+    QStatusBar, QToolBox, QToolButton, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -287,12 +287,20 @@ class Ui_MainWindow(object):
         self.plot_widget.setObjectName(u"plot_widget")
         self.plot_widget.setMinimumSize(QSize(100, 10))
 
-        self.special.addWidget(self.plot_widget, 2, 1, 1, 1)
+        self.special.addWidget(self.plot_widget, 3, 1, 1, 1)
 
         self.lcr_statistics = QLabel(self.centralwidget)
         self.lcr_statistics.setObjectName(u"lcr_statistics")
 
         self.special.addWidget(self.lcr_statistics, 1, 1, 1, 1)
+
+        self.lcr_progressbar = QProgressBar(self.centralwidget)
+        self.lcr_progressbar.setObjectName(u"lcr_progressbar")
+        self.lcr_progressbar.setVisible(False)
+        self.lcr_progressbar.setValue(0)
+        self.lcr_progressbar.setTextVisible(True)
+
+        self.special.addWidget(self.lcr_progressbar, 2, 1, 1, 1)
 
         self.specific = QToolBox(self.centralwidget)
         self.specific.setObjectName(u"specific")
@@ -339,9 +347,9 @@ class Ui_MainWindow(object):
         self.formLayout_11.setObjectName(u"formLayout_11")
         self.specific.addItem(self.fuse, u"Sicherung")
 
-        self.special.addWidget(self.specific, 1, 0, 2, 1)
+        self.special.addWidget(self.specific, 1, 0, 3, 1)
 
-        self.special.setRowStretch(2, 1)
+        self.special.setRowStretch(3, 1)
         self.special.setColumnStretch(1, 1)
 
         self.gridLayout.addLayout(self.special, 4, 1, 1, 2)
@@ -425,6 +433,7 @@ class Ui_MainWindow(object):
         self.label_8.setText(QCoreApplication.translate("MainWindow", u"Messung (LCR)", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"OpenBIS Eigenschaften", None))
         self.lcr_statistics.setText("")
+        self.lcr_progressbar.setFormat(QCoreApplication.translate("MainWindow", u"Messpunkt %v von %m", None))
         self.specific.setItemText(self.specific.indexOf(self.resistor), QCoreApplication.translate("MainWindow", u"Widerstand", None))
         self.specific.setItemText(self.specific.indexOf(self.capacitor), QCoreApplication.translate("MainWindow", u"Kondensator", None))
         self.specific.setItemText(self.specific.indexOf(self.inductor), QCoreApplication.translate("MainWindow", u"Induktivit\u00e4t", None))

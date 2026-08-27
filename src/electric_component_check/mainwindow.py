@@ -1,5 +1,6 @@
 import re
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,11 @@ class MainWindow(QMainWindow):
         self._measurement_thread: QtCore.QThread | None = None
         self._measurement_worker: LCRMeasurementWorker | None = None
         self._current_measurement_name: str | None = None
+
+        # Sweep-Fortschritt: letzte Zeitpunkte für eine grobe ETA-Schätzung
+        # (rollierender Mittelwert, damit ein einzelner langsamer Punkt die
+        # Schätzung nicht verzerrt).
+        self._sweep_point_times: list[float] = []
 
         # Ergebnis der letzten abgeschlossenen Messung (für den Upload)
         self._last_results: list[dict[str, Any]] = []
@@ -329,6 +335,40 @@ class MainWindow(QMainWindow):
             duration_ms=2000,
         )
 
+    def _on_sweep_started(self, total: int) -> None:
+        """Bereitet die Progressbar für eine neue Messreihe vor."""
+        self._sweep_point_times = [time.monotonic()]
+        self.ui.lcr_progressbar.setRange(0, total)
+        self.ui.lcr_progressbar.setValue(0)
+        self.ui.lcr_progressbar.setVisible(True)
+
+    def _on_sweep_progress(self, done: int, total: int, label: str) -> None:
+        """Aktualisiert Progressbar und Statistik-Zeile mit einer groben ETA.
+
+        Läuft auf dem GUI-Thread (Qt liefert das Signal aus measure_sweep()
+        im Worker-Thread queued aus), darf hier also Widgets anfassen.
+        """
+        now = time.monotonic()
+        self._sweep_point_times.append(now)
+        # Nur die letzten paar Intervalle für die Schätzung heranziehen, damit
+        # ein einzelner langsamer "Data Not Ready"-Retry sie nicht dominiert.
+        recent = self._sweep_point_times[-4:]
+        eta_text = ""
+        if len(recent) >= 2 and done > 0:
+            avg_interval = (recent[-1] - recent[0]) / (len(recent) - 1)
+            remaining = max(total - done, 0)
+            eta_text = f", ca. {avg_interval * remaining:.0f} s verbleibend"
+
+        self.ui.lcr_progressbar.setRange(0, total)
+        self.ui.lcr_progressbar.setValue(done)
+        self.ui.lcr_statistics.setText(f"{label} -- {done}/{total}{eta_text}")
+
+    def _on_sweep_finished(self, ok: int, total: int) -> None:
+        """Blendet die Progressbar wieder aus; die Statistik-Zeile übernimmt
+        _build_measurement_report() gleich danach mit dem Referenzwert."""
+        self.ui.lcr_progressbar.setVisible(False)
+        self._sweep_point_times = []
+
     def _on_measurement_finished(
         self, measurement_name: str, results: list[dict[str, Any]]
     ) -> None:
@@ -502,6 +542,10 @@ class MainWindow(QMainWindow):
         self.lcr_controller.status_changed.connect(self._on_lcr_status)
         # Transiente Statusmeldungen für Statusbar
         self.lcr_controller.status_message.connect(self._on_status_message)
+        # Sweep-Fortschritt für die Progressbar
+        self.lcr_controller.sweep_started.connect(self._on_sweep_started)
+        self.lcr_controller.sweep_progress.connect(self._on_sweep_progress)
+        self.lcr_controller.sweep_finished.connect(self._on_sweep_finished)
 
     def _on_lcr_connected(self, device_id: str):
         """LCR-Gerät erfolgreich verbunden."""
@@ -855,6 +899,11 @@ class MainWindow(QMainWindow):
             return
 
         self._show_status(f"Speichere '{obj_code}'...", level="info", duration_ms=2000)
+        # Unbestimmter Modus (0,0): derselbe Balken wie beim Sweep beantwortet
+        # "hängt es?" einheitlich, auch wenn die Anzahl der HTTP-Requests
+        # (create/update, dann ggf. Dataset-Upload) nicht vorab bekannt ist.
+        self.ui.lcr_progressbar.setRange(0, 0)
+        self.ui.lcr_progressbar.setVisible(True)
 
         self._upload_thread = QtCore.QThread(self)
         self._upload_worker = OpenBISUploadWorker(self.openbis_controller, request)
@@ -878,6 +927,7 @@ class MainWindow(QMainWindow):
         weil dieses Signal aus dem Worker-Thread kommt (queued delivery) und
         der Reset Widgets anfasst.
         """
+        self.ui.lcr_progressbar.setVisible(False)
         if mode == "created" and self.current_object_data is not None:
             self.current_object_data["permId"] = perm_id
         self._transition(CycleState.DONE)
@@ -890,6 +940,7 @@ class MainWindow(QMainWindow):
         bleiben erhalten, damit ein erneuter Upload-Versuch nicht die Messung
         wiederholen muss.
         """
+        self.ui.lcr_progressbar.setVisible(False)
         self._transition(CycleState.FAILED)
 
     def _cleanup_upload_thread(self) -> None:
@@ -1105,6 +1156,9 @@ class MainWindow(QMainWindow):
 
         self.plot_controller.reset()
         self.ui.lcr_statistics.setText("")
+        self.ui.lcr_progressbar.setVisible(False)
+        self.ui.lcr_progressbar.setRange(0, 1)
+        self.ui.lcr_progressbar.setValue(0)
 
         if self._calibration_open_done or self._calibration_short_done:
             self._show_status(
