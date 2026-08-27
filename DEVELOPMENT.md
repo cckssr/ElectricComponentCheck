@@ -34,6 +34,21 @@ make ui
 Never hand-edit `form_ui.py` or `calibration_ui.py` — they are overwritten by `make ui` and
 the comment at the top of each says so.
 
+## Configuration
+
+`electric_component_check.config.load_config()` resolves a TOML config, overlaid on the
+shipped `default_config.toml`. Search order, first match wins:
+
+1. `$ECC_CONFIG` — an explicit path
+2. `./ecc.toml` — convenient for running from a repo checkout
+3. the OS user-config directory (`platformdirs.user_config_dir("ElectricComponentCheck", "TU-Berlin")`)
+
+A user file only needs to set what differs from the default (deep-merged). Validation fails
+fast with a `ConfigError` naming the offending dotted key — e.g. a drive level outside the
+LCR-500's supported `{300, 600}` mV, or a sweep frequency not specified in
+`vcr_uncertainties.json`. `get_config()` caches the result per process; `reload_config()`
+clears the cache.
+
 ## Common tasks
 
 ```bash

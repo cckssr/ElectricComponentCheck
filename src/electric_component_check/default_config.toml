@@ -1,0 +1,65 @@
+# Default configuration for ElectricComponentCheck.
+#
+# This shipped file is the baseline; a user config (see config.py for the
+# search path) only needs to override what differs, most importantly
+# [openbis.target].collection, which has no safe default.
+
+[openbis]
+url = "https://openbis.physik.tu-berlin.de"
+object_type = "ELEKTRONISCHES_BAUTEIL"
+
+[openbis.target]
+# Fixed creation target for new objects. Must be set by the operator before
+# the "create new object" path can be used; updating existing objects does
+# not need it.
+collection = ""
+space = ""
+project = ""
+
+# UI general field -> OpenBIS property code (ELEKTRONISCHES_BAUTEIL, section
+# "Allgemein"). See docs/openbis-object-types.xlsx.
+[openbis.general_properties]
+manufacturer = "equipment.company"
+alternative_name = "equipment.alternativ_name"
+status = "equipment.status"
+electrical_type = "equipment.electrical_type"
+
+# Where a sweep's reference value/uncertainty/unit/date are written (section
+# "Messung" of ELEKTRONISCHES_BAUTEIL). One universal quartet for every
+# component type -- there is no separate slot per measurand.
+[openbis.measurement_properties]
+value = "equipment.measurement_value"
+uncertainty = "equipment.measurement_uncert"
+unit = "equipment.measurement_unit"
+date = "equipment.measurement_date"
+
+# The PDF report is attached as a CALI_CERT dataset (no $NAME property).
+[openbis.dataset]
+type = "CALI_CERT"
+lab_name = "TU Berlin"
+lab_property = "dataset.cali_lab"
+date_property = "dataset.cali_date"
+device_property = "dataset.cali_device"
+
+[measurement]
+frequencies_hz = [100, 120, 400, 1000, 4000, 10000, 40000, 50000, 75000, 100000]
+# The LCR-500 only accepts these two drive levels; anything else is rejected.
+voltage_levels_mv = [300, 600]
+
+# The reference point used to reduce a full sweep to the single value written
+# to OpenBIS, chosen for where vcr_uncertainties.json specifies the best
+# accuracy for that measurand.
+[measurement.reference.capacitor]
+frequency_hz = 1000
+level_mv = 600
+
+[measurement.reference.inductor]
+frequency_hz = 10000
+level_mv = 600
+
+[measurement.reference.resistor]
+frequency_hz = 100
+level_mv = 600
+
+[ui]
+keep_last_type = true

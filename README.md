@@ -27,6 +27,15 @@ with measured values and a generated PDF certificate. Built for the TU Berlin ph
 
 See [INSTALL.md](INSTALL.md) to get set up.
 
+## Configuration
+
+The OpenBIS server URL, the fixed collection new objects are created into, the sweep's
+frequencies and drive levels, and the property codes measurements are written to all live in
+a TOML config, not in code -- see `src/electric_component_check/default_config.toml` for
+every key and [DEVELOPMENT.md](DEVELOPMENT.md) for the search path. At minimum, set
+`[openbis.target].collection` before creating new objects; updating existing objects works
+with the shipped default.
+
 ## Measurement uncertainty module
 
 `electric_component_check.vcr_uncertainties` computes measurement uncertainties for LCR
