@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Any
 
 import platformdirs
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from pyvisa import ResourceManager
 
+from .component_session import ComponentSession, CycleState, IllegalTransitionError
 from .config import APP_AUTHOR, APP_NAME, AppConfig, get_config
 from .lcr_controller import LCRController, LCRMeasurementWorker
 from .measurement_summary import (
@@ -56,10 +57,19 @@ class MainWindow(QMainWindow):
         self._calibration_open_done = False
         self._calibration_short_done = False
 
+        # Zustandsautomat für den Barcode -> Messung -> Upload -> Reset-Zyklus.
+        # _apply_state() ist die einzige Stelle, die Widgets anhand des
+        # Zustands aktiviert/deaktiviert.
+        self.session = ComponentSession(self)
+        self._pre_measurement_state = CycleState.LOADED_KNOWN
+        self.session.state_changed.connect(lambda _old, new: self._apply_state(new))
+
         # Plot-Controller kapselt alle Plot-bezogenen Operationen
         self.plot_controller = PlotController(self.ui.plot_widget, self)
         self._init_connections()
-        self._update_lcr_measurement_state()
+        self._apply_state(self.session.state)
+
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+N"), self, self.reset_for_next_component)
 
     def _init_connections(self):
         """Initialisiert UI-Verbindungen und Controller."""
@@ -67,6 +77,8 @@ class MainWindow(QMainWindow):
         self.ui.session_token.returnPressed.connect(self._on_st_changed)
         self.ui.openbis_progress.setText("Warten auf Session Token...")
         self.ui.barcode.returnPressed.connect(self._on_barcode_entered)
+        # Manche Scanner senden Tab statt Enter nach dem Barcode.
+        self.ui.barcode.editingFinished.connect(self._on_barcode_entered)
         self.ui.openbis_upload.clicked.connect(self._on_openbis_save_clicked)
 
         # LCR-Verbindungen
@@ -115,24 +127,104 @@ class MainWindow(QMainWindow):
         index = self.ui.type.currentIndex()
         return mapping.get(index)
 
+    def _transition(self, new_state: CycleState) -> bool:
+        """Wechselt den Zyklus-Zustand; meldet statt abzustürzen, falls unzulässig.
+
+        Ein unzulässiger Wechsel ist ein Programmierfehler, kein Nutzerfehler
+        -- lieber eine Statuszeile als ein Absturz mitten in einer Messung.
+        """
+        try:
+            self.session.transition(new_state)
+            return True
+        except IllegalTransitionError as e:
+            self._show_status(str(e), level="error", duration_ms=6000)
+            return False
+
     def _update_lcr_measurement_state(self) -> None:
-        """Aktualisiert den Aktivierungszustand und Text des Mess-Buttons."""
-        if self._measurement_running:
-            # Während der Messung: Button wird zum Stop-Button
+        """Kompatibilitäts-Alias: rendert den aktuellen Zyklus-Zustand neu.
+
+        Aufgerufen von Signalen, die den Mess-Button betreffen könnten (z.B.
+        Typ- oder Barcode-Änderungen), ohne selbst einen Zustandswechsel
+        auszulösen.
+        """
+        self._apply_state(self.session.state)
+
+    def _mandatory_fields_filled(self) -> bool:
+        """Prüft, ob alle vom Server als Pflicht markierten Felder gesetzt sind.
+
+        Verhindert, dass ein Upload erst nach der 2-minütigen Messung an
+        Sample.save()s lokaler Validierung scheitert.
+        """
+        if not self.openbis_controller:
+            return False
+        mandatory = self.openbis_controller.mandatory_property_codes
+        if not mandatory:
+            # Property-Metadaten noch nicht geladen -- nicht dauerhaft blockieren.
+            return True
+
+        gp = self.config.general_properties
+        for code in mandatory:
+            if code == gp.get("electrical_type"):
+                if self.ui.type.currentIndex() < 0:
+                    return False
+                continue
+            if code == gp.get("status"):
+                if self.ui.status.currentIndex() < 0:
+                    return False
+                continue
+            field = self.findChild(QtWidgets.QWidget, code.upper())
+            if field is None:
+                continue
+            if isinstance(field, QtWidgets.QLineEdit) and not field.text().strip():
+                return False
+            if isinstance(field, QtWidgets.QComboBox) and field.currentIndex() < 0:
+                return False
+        return True
+
+    def _apply_state(self, state: CycleState) -> None:
+        """Einzige Stelle, die den Enabled-Zustand der Zyklus-Widgets setzt.
+
+        Ersetzt die verstreuten setEnabled()-Aufrufe der einzelnen Signal-Handler.
+        """
+        awaiting = state == CycleState.AWAITING_BARCODE
+        self.ui.barcode.setEnabled(awaiting)
+        if awaiting:
+            self.ui.barcode.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+
+        loaded = state in (
+            CycleState.LOADED_KNOWN,
+            CycleState.LOADED_NEW,
+            CycleState.MEASURED,
+            CycleState.FAILED,
+        )
+        self._set_general_fields_enabled(loaded, enable_type=(state == CycleState.LOADED_NEW))
+
+        measuring = state == CycleState.MEASURING
+        can_measure = (
+            loaded
+            and self.lcr_controller is not None
+            and self._lcr_connected
+            and self._get_selected_component() is not None
+        )
+        if measuring:
             self.ui.lcr_startmeasurement.setText("Messung stoppen")
             self.ui.lcr_startmeasurement.setEnabled(True)
         else:
-            # Vor der Messung: Button wird zum Start-Button
             self.ui.lcr_startmeasurement.setText("LCR-Messung starten")
-            barcode = self.ui.barcode.text().strip()
-            component = self._get_selected_component()
-            can_measure = (
-                self.lcr_controller is not None
-                and self._lcr_connected
-                and bool(barcode)
-                and component is not None
-            )
             self.ui.lcr_startmeasurement.setEnabled(can_measure)
+
+        # Geräteauswahl während einer laufenden Messung sperren -- sonst reißt
+        # eine versehentliche Auswahl den Controller mitten in der Messung ab.
+        self.ui.lcr_resource.setEnabled(not measuring)
+        self.ui.lcr_refresh_resource.setEnabled(not measuring)
+
+        can_upload = loaded and state != CycleState.MEASURING
+        if can_upload and state == CycleState.LOADED_NEW:
+            can_upload = self._mandatory_fields_filled()
+        self.ui.openbis_upload.setEnabled(can_upload)
+        self.ui.openbis_upload.setText(
+            "Anlegen und hochladen" if state == CycleState.LOADED_NEW else "Hochladen"
+        )
 
     def _build_measurement_name(self, barcode: str) -> str:
         """Erzeugt den Messungsnamen basierend auf Barcode und Zeitstempel."""
@@ -173,10 +265,29 @@ class MainWindow(QMainWindow):
             )
             return
 
+        pre_measurement_state = self.session.state
+        if pre_measurement_state not in (
+            CycleState.LOADED_KNOWN,
+            CycleState.LOADED_NEW,
+            CycleState.MEASURED,
+            CycleState.FAILED,
+        ):
+            return
+
+        # FAILED means "the previous upload failed", not "there is no data" --
+        # if this new attempt aborts too, land back on MEASURED, which is what
+        # MEASURING's allowed targets actually support.
+        self._pre_measurement_state = (
+            CycleState.MEASURED
+            if pre_measurement_state == CycleState.FAILED
+            else pre_measurement_state
+        )
+        if not self._transition(CycleState.MEASURING):
+            return
+
         self._measurement_running = True
         self._current_measurement_name = self._build_measurement_name(barcode)
         self.plot_controller.start_measurement(self._current_measurement_name)
-        self._update_lcr_measurement_state()
 
         self._measurement_thread = QtCore.QThread(self)
         self._measurement_worker = LCRMeasurementWorker(
@@ -235,6 +346,7 @@ class MainWindow(QMainWindow):
                 duration_ms=4000,
             )
             self._build_measurement_report(measurement_name, results)
+            self._transition(CycleState.MEASURED)
         else:
             self.ui.lcr_statistics.setText("")
             self._show_status(
@@ -242,8 +354,7 @@ class MainWindow(QMainWindow):
                 level="warning",
                 duration_ms=4000,
             )
-
-        self._update_lcr_measurement_state()
+            self._transition(self._pre_measurement_state)
 
     def _build_measurement_report(
         self, measurement_name: str, results: list[dict[str, Any]]
@@ -321,11 +432,15 @@ class MainWindow(QMainWindow):
             )
 
     def _on_measurement_failed(self, error: str) -> None:
-        """Reagiert auf Fehler im Mess-Thread."""
+        """Reagiert auf Fehler im Mess-Thread.
+
+        Keine modale Box: die Messung kann jederzeit erneut gestartet werden,
+        und ein blockierender Dialog würde genau die scannergetriebene
+        Bedienung stören, um die es hier geht.
+        """
         self._measurement_running = False
-        self._show_status(error, level="error", duration_ms=5000)
-        QMessageBox.critical(self, "Messfehler", error)
-        self._update_lcr_measurement_state()
+        self._show_status(f"Messfehler: {error}", level="error", duration_ms=6000)
+        self._transition(self._pre_measurement_state)
 
     def _cleanup_measurement_thread(self) -> None:
         """Aufräumen nach Thread-Ende."""
@@ -594,9 +709,8 @@ class MainWindow(QMainWindow):
         """OpenBIS erfolgreich verbunden."""
         self.ui.openbis_progress.setText(info)
         self.ui.openbis_progress.setStyleSheet("color: green;")
-        self.ui.barcode.setEnabled(True)
-        self.ui.barcode.setFocus()
         self.init_sections()
+        self._transition(CycleState.AWAITING_BARCODE)
 
     def _on_openbis_disconnected(self):
         """OpenBIS getrennt."""
@@ -612,10 +726,7 @@ class MainWindow(QMainWindow):
         # Hier können Objektdaten in UI geladen werden
         self.ui.object_status.setCurrentText("Bekannt")
         self._fill_object_data(obj_data)
-        # Nur generelle Felder (außer type) aktivieren, type bleibt deaktiviert
-        self._set_general_fields_enabled(True, enable_type=False)
-        # Aktiviere Upload-Button
-        self.ui.openbis_upload.setEnabled(True)
+        self._transition(CycleState.LOADED_KNOWN)
 
     def _on_openbis_object_not_found(self, code: str):
         """OpenBIS-Objekt nicht gefunden -- bereitet die Neuanlage vor."""
@@ -625,9 +736,7 @@ class MainWindow(QMainWindow):
         # Neues Objekt vormerken, damit der Upload-Button die Create-Route nimmt
         self.initial_field_values.clear()
         self.current_object_data = {"code": code, "permId": None, "properties": {}}
-        # Alle Felder aktivieren (inkl. type)
-        self._set_general_fields_enabled(True, enable_type=True)
-        self.ui.openbis_upload.setEnabled(True)
+        self._transition(CycleState.LOADED_NEW)
 
     def _on_openbis_properties_loaded(self, properties: dict):
         """OpenBIS-Properties geladen."""
@@ -638,13 +747,27 @@ class MainWindow(QMainWindow):
         """OpenBIS-Fehler aufgetreten."""
         # Fehler nur transient in der Statusbar anzeigen
         self._show_status(error_msg, level="error", duration_ms=6000)
+        if self.session.state == CycleState.LOOKING_UP:
+            # search_object() weder gefunden noch eindeutig nicht-gefunden
+            # (z.B. Mehrfachtreffer) -- Barcode-Feld für einen erneuten Versuch
+            # wieder freigeben, statt in LOOKING_UP stecken zu bleiben.
+            self._transition(CycleState.AWAITING_BARCODE)
 
     def _on_openbis_status(self, status: str):
         """OpenBIS-Status geändert."""
         self.ui.openbis_progress.setText(status)
 
     def _on_barcode_entered(self):
-        """Barcode wurde eingegeben."""
+        """Barcode wurde eingegeben (Enter oder Fokusverlust, je nach Scanner).
+
+        Der Zustands-Check verhindert eine doppelte Suche, wenn ein Scanner
+        sowohl returnPressed als auch editingFinished auslöst: der erste
+        Aufruf wechselt nach LOOKING_UP, der zweite sieht das und kehrt sofort
+        zurück.
+        """
+        if self.session.state != CycleState.AWAITING_BARCODE:
+            return
+
         barcode = self.ui.barcode.text().strip()
         if not barcode:
             return
@@ -657,6 +780,8 @@ class MainWindow(QMainWindow):
             )
             return
 
+        if not self._transition(CycleState.LOOKING_UP):
+            return
         self.openbis_controller.search_object(barcode)
         # Transiente Meldung erfolgt durch Controller
 
@@ -726,7 +851,9 @@ class MainWindow(QMainWindow):
             instrument_id=instrument_id,
         )
 
-        self.ui.openbis_upload.setEnabled(False)
+        if not self._transition(CycleState.UPLOADING):
+            return
+
         self._show_status(f"Speichere '{obj_code}'...", level="info", duration_ms=2000)
 
         self._upload_thread = QtCore.QThread(self)
@@ -744,14 +871,26 @@ class MainWindow(QMainWindow):
         self._upload_thread.start()
 
     def _on_upload_finished(self, perm_id: str, mode: str) -> None:
-        """Upload-Worker erfolgreich beendet -- Business-Feedback kommt vom Controller."""
-        self.ui.openbis_upload.setEnabled(True)
+        """Upload-Worker erfolgreich beendet -- danach direkt bereit für das nächste Bauteil.
+
+        Kein modaler Dialog: er würde den Fokus stehlen und den nächsten Scan
+        schlucken. Der Reset wird über QTimer.singleShot(0, ...) verzögert,
+        weil dieses Signal aus dem Worker-Thread kommt (queued delivery) und
+        der Reset Widgets anfasst.
+        """
         if mode == "created" and self.current_object_data is not None:
             self.current_object_data["permId"] = perm_id
+        self._transition(CycleState.DONE)
+        QtCore.QTimer.singleShot(0, self.reset_for_next_component)
 
     def _on_upload_failed(self, error: str) -> None:
-        """Upload-Worker fehlgeschlagen -- Fehlermeldung kommt vom Controller."""
-        self.ui.openbis_upload.setEnabled(True)
+        """Upload-Worker fehlgeschlagen -- Fehlermeldung kommt vom Controller.
+
+        Bleibt bewusst im Zyklus (FAILED): Barcode, Felder und Messergebnis
+        bleiben erhalten, damit ein erneuter Upload-Versuch nicht die Messung
+        wiederholen muss.
+        """
+        self._transition(CycleState.FAILED)
 
     def _cleanup_upload_thread(self) -> None:
         """Aufräumen nach Ende des Upload-Threads."""
@@ -763,19 +902,11 @@ class MainWindow(QMainWindow):
     def _on_openbis_object_created(self, obj_code: str):
         """Wird aufgerufen, wenn ein neues Objekt erfolgreich angelegt wurde."""
         self.ui.object_status.setCurrentText("Bekannt")
-        QMessageBox.information(
-            self,
-            "Erfolg",
-            f"Objekt '{obj_code}' wurde erfolgreich angelegt.",
-        )
+        self._show_status(f"Objekt '{obj_code}' angelegt", level="success", duration_ms=4000)
 
     def _on_openbis_object_updated(self, obj_code: str):
         """Wird aufgerufen, wenn ein Objekt erfolgreich aktualisiert wurde."""
-        QMessageBox.information(
-            self,
-            "Erfolg",
-            f"Objekt '{obj_code}' wurde erfolgreich aktualisiert.",
-        )
+        self._show_status(f"Objekt '{obj_code}' aktualisiert", level="success", duration_ms=4000)
 
     def _collect_properties_from_ui(self) -> dict[str, Any]:
         """
@@ -839,7 +970,12 @@ class MainWindow(QMainWindow):
                 continue
 
             field = field_item.widget()
-            prop_name = field.objectName()
+            # Das Widget trägt den OpenBIS-Code in Server-Schreibweise
+            # (GROSSGESCHRIEBEN, z.B. EQUIPMENT.CAPACITOR_CAPACITANCE) als
+            # objectName; initial_field_values speichert dagegen die von
+            # pybis gelieferten (kleingeschriebenen) Codes. Ohne .lower()
+            # hier verfehlt der Lookup immer und jedes Feld gilt als "geändert".
+            prop_name = field.objectName().lower()
 
             if not prop_name:
                 continue
@@ -879,13 +1015,15 @@ class MainWindow(QMainWindow):
 
         return properties
 
-    def _set_general_fields_enabled(self, enabled: bool, enable_type: bool = True):
+    def _set_general_fields_enabled(self, enabled: bool, enable_type: bool):
         """
         Aktiviert/Deaktiviert die generellen Felder.
 
         Args:
             enabled: True um Felder zu aktivieren, False um zu deaktivieren
-            enable_type: Wenn True, wird auch das type-Feld aktiviert/deaktiviert
+            enable_type: Zielzustand für das type-Feld. Für ein bekanntes
+                Objekt ist der Typ serverseitig festgelegt und bleibt explizit
+                deaktiviert, unabhängig vom letzten Zustand dieses Feldes.
         """
         # Generelle Felder (außer barcode und object_status, die immer ihren Status behalten)
         general_fields = [
@@ -897,9 +1035,86 @@ class MainWindow(QMainWindow):
         for field in general_fields:
             field.setEnabled(enabled)
 
-        # Type-Feld separat behandeln
-        if enable_type:
-            self.ui.type.setEnabled(enabled)
+        self.ui.type.setEnabled(enable_type)
+
+    # ========================================================================
+    # Reset für das nächste Bauteil
+    # ========================================================================
+
+    def _clear_specific_fields(self) -> None:
+        """Leert alle Eingabefelder auf allen sechs Bauteil-spezifischen Seiten.
+
+        Läuft über dieselbe FormLayout-Struktur wie _collect_properties_from_ui,
+        aber über alle Seiten (nicht nur die aktive) -- ein Objektwechsel darf
+        keine Werte aus dem vorherigen Bauteil zurücklassen.
+        """
+        pages = [
+            self.ui.resistor,
+            self.ui.capacitor,
+            self.ui.inductor,
+            self.ui.transistor,
+            self.ui.switch_2,
+            self.ui.fuse,
+        ]
+        for page in pages:
+            layout = page.layout()
+            if layout is None or not isinstance(layout, QtWidgets.QFormLayout):
+                continue
+            for i in range(layout.rowCount()):
+                field_item = layout.itemAt(i, QtWidgets.QFormLayout.ItemRole.FieldRole)
+                if not field_item or not field_item.widget():
+                    continue
+                field = field_item.widget()
+                if isinstance(field, QtWidgets.QLineEdit):
+                    field.clear()
+                elif isinstance(field, QtWidgets.QComboBox):
+                    field.setCurrentIndex(-1 if field.count() > 0 else 0)
+                elif isinstance(field, (QtWidgets.QDoubleSpinBox, QtWidgets.QSpinBox)):
+                    field.setValue(0)
+
+    def reset_for_next_component(self) -> None:
+        """Bereitet die UI für das nächste Bauteil vor -- der Kern des schnellen Zyklus.
+
+        Geleert: Barcode, allgemeine Felder, alle spezifischen Seiten,
+        Objekt-/Mess-Zustand, Plot, Statistik-Anzeige.
+        Erhalten: OpenBIS-Session inkl. geladener Property-/Vokabular-Metadaten
+        (init_properties() läuft NICHT erneut -- das kostet mehrere Sekunden
+        HTTP pro Aufruf), die LCR-Verbindung, die Kalibrierungs-Flags (Eigenschaft
+        der Messstrecke, nicht des Bauteils) und die Konfiguration.
+
+        Kein Reset während MEASURING/UPLOADING/LOOKING_UP -- ein versehentlicher
+        Ctrl+N (das manuelle Escape-Hatch) darf keine laufende Operation abwürgen.
+        """
+        if not self.session.can_transition(CycleState.AWAITING_BARCODE):
+            return
+
+        self.ui.barcode.clear()
+        self.ui.manufacturer.clear()
+        self.ui.orig_name.clear()
+        self.ui.status.setCurrentIndex(0)
+        self.ui.type.setCurrentIndex(-1 if self.ui.type.count() > 0 else 0)
+        self.ui.object_status.setCurrentIndex(0)
+        self._clear_specific_fields()
+
+        self.current_object_data = None
+        self.initial_field_values.clear()
+        self._last_results = []
+        self._last_summary = None
+        self._last_report_path = None
+        self._current_measurement_name = None
+
+        self.plot_controller.reset()
+        self.ui.lcr_statistics.setText("")
+
+        if self._calibration_open_done or self._calibration_short_done:
+            self._show_status(
+                f"Kalibrierung weiterhin aktiv (Open: {self._calibration_open_done}, "
+                f"Short: {self._calibration_short_done})",
+                level="info",
+                duration_ms=3000,
+            )
+
+        self._transition(CycleState.AWAITING_BARCODE)
 
     # ========================================================================
     # Daten-Management

@@ -49,6 +49,18 @@ LCR-500's supported `{300, 600}` mV, or a sweep frequency not specified in
 `vcr_uncertainties.json`. `get_config()` caches the result per process; `reload_config()`
 clears the cache.
 
+## The component cycle
+
+`electric_component_check.component_session.ComponentSession` is an explicit state machine
+(`CycleState`: `AWAITING_BARCODE → LOOKING_UP → LOADED_KNOWN|LOADED_NEW → MEASURING → MEASURED
+→ UPLOADING → DONE|FAILED`) that `MainWindow._apply_state()` uses as the single place deciding
+which widgets are enabled — not scattered `setEnabled()` calls in each signal handler. A
+successful upload auto-resets the form and returns focus to the barcode field
+(`MainWindow.reset_for_next_component()`), so a barcode scanner can drive the whole
+scan → measure → upload → scan-next-component loop without a mouse; `Ctrl+N` is the manual
+equivalent. When changing this flow, add the transition to `component_session.py`'s allowed-transitions
+table first — `MainWindow._transition()` reports (rather than crashes on) anything not listed there.
+
 ## Common tasks
 
 ```bash
