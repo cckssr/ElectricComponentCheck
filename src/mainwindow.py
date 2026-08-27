@@ -9,7 +9,7 @@ from pyvisa import ResourceManager
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PySide6 import QtWidgets, QtCore
 
-from ui.ui_form import Ui_MainWindow
+from ui.form_ui import Ui_MainWindow
 from ui.calibration_ui import Ui_Dialog as Ui_CalibrationDialog
 from openbis_controller import OpenBISController
 from lcr_controller import LCRController, LCRMeasurementWorker
@@ -812,9 +812,7 @@ class MainWindow(QMainWindow):
     def _on_status_message(self, message: str, level: str, duration_ms: int):
         self._show_status(message, level=level, duration_ms=duration_ms)
 
-    def _show_status(
-        self, message: str, level: str = "info", duration_ms: Optional[int] = None
-    ):
+    def _show_status(self, message: str, level: str = "info", duration_ms: int = 4000):
         """Zeigt eine formatierte, temporäre Meldung in der Statusbar an."""
         bar = self.statusBar()
         # Farben nach Level
