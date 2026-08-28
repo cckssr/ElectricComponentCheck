@@ -55,11 +55,10 @@ Issues = "https://github.com/cckssr/ElectricComponentCheck/issues"
 electric-component-check = "electric_component_check.mainwindow:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "electric_component_check"}
 
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["electric_component_check*"]
+where = ["electric_component_check*"]
 
 [tool.setuptools.package-data]
 electric_component_check = ["*.json", "*.toml", "ui/*.ui"]
@@ -70,7 +69,7 @@ target-version = "py311"
 # form_ui.py / calibration_ui.py are pyside6-uic output (`make ui` regenerates
 # them from form.ui / calibration.ui) -- linting/formatting them here just
 # fights the next regeneration.
-extend-exclude = ["src/electric_component_check/ui/form_ui.py", "src/electric_component_check/ui/calibration_ui.py"]
+extend-exclude = ["electric_component_check/ui/form_ui.py", "electric_component_check/ui/calibration_ui.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -87,4 +86,4 @@ exclude = ["^test/"]
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
-pythonpath = ["src"]
+pythonpath = ["electric_component_check"]

@@ -1,8 +1,8 @@
 {
-    "python.defaultInterpreterPath": ".venv/bin/python",
+  "python.defaultInterpreterPath": ".venv/bin/python",
 
-    // Code Runner auf die aktuelle venv anpassen
-    "code-runner.executorMap": {
-        "python": ".venv/bin/python -u"
-    },
+  // Code Runner auf die aktuelle venv anpassen
+  "code-runner.executorMap": {
+    "python": ".venv/bin/python -u"
+  }
 }
